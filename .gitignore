@@ -1,0 +1,34 @@
+# Outils portables (telecharges par setup_tools.ps1)
+tools/
+
+# Builds (publies dans les Releases GitHub)
+build/
+*.tmp
+
+# Cache Godot
+godot/.godot/
+godot/.import/
+*.translation
+
+# Captures generees par les tests
+godot/tests/screenshots/
+
+# Rendus de verification Blender (lourds) - une selection est dans docs/images
+blender/previews/
+blender/preview_bodies.png
+__pycache__/
+*.blend1
+
+# Assistant IA local : binaires llama.cpp et modeles (telecharges par le script d'installation)
+assistant/.venv/
+assistant/models/
+assistant/llama/
+assistant/*.log
+assistant/**/__pycache__/
+
+# Divers
+tmp_feed/
+.DS_Store
+Thumbs.db
+*.log
+godot/tests/ui_test_log.txt

@@ -1,0 +1,414 @@
+{
+ "_doc": "Cycles lookdev for Pompom's transparent (environment matting, Zongker et al. 1999) and opaque (matcap) materials. Generator: blender/render_materials.py. Lighting = studio rig in godot/data/studio_rig.json (same lights + gradient sky as the fur matcaps). All maps are indexed like a matcap: the 512x512 image is an orthographic front view of a unit sphere filling the image (pixel uv = view-space normal.xy * 0.5 + 0.5, v up).",
+ "generator": "blender/render_materials.py",
+ "view_transform": "Standard",
+ "look": "None",
+ "exposure": 0.0,
+ "environment_matting": {
+  "setup": {
+   "sphere_radius": 1.0,
+   "sphere_center_blender": [
+    0,
+    0,
+    0
+   ],
+   "camera": "orthographic, Blender (0,-10,0) looking +Y, ortho_scale 2.0 (image spans x,z in [-1,1])",
+   "ortho_scale": 2.0,
+   "resolution": 512,
+   "background_plane": "emissive, unlit, Blender y = +2.0 (2 units behind sphere centre = 1 unit behind its back), spans x,z in [-6,6], no shadows, invisible to diffuse rays, visible to camera/glossy/transmission/volume-scatter rays",
+   "plane_distance_from_center": 2.0,
+   "plane_half_size": 6.0,
+   "density_scale": 0.5,
+   "density_scale_doc": "the radius-1 sphere stands for a pet of radius ~0.5 scaled x2: all volume coefficients (absorption, scattering) were multiplied by density_scale so the optical depth through the sphere equals the one through the real pet (the *_per_unit values below are at pet scale, as used in the reference renders).",
+   "godot_view_space": "Blender (x, y, z) -> Godot view (x, z, -y): plane x = view right, plane z = view up"
+  },
+  "composite_formula": "C_lin = self_lin + Tp * Bg_lin(Pp, blur sp) + max(trans_lin - Tp, 0) * Bg_lin(Ps, blur ss). Two layers: PRIMARY = rays refracted exactly twice (camera -> enter -> exit -> background, never scattered or internally reflected): sharp refracted image, position Pp = refr.rg, throughput Tp = refr.b, blur sp = aux.g*2. SECONDARY = everything else that reaches the background (volume scattering, internal reflections, external Fresnel reflection of the background at grazing rim angles): mean position Ps = scat.rg, blur ss = scat.b*4. Outside the sphere: self=0, trans=1, Tp=1, Pp = straight-through, so the formula needs no alpha. Positions/blur are in plane units (sphere radius = 1). Validated in numpy against a Cycles render of the sphere in front of backdrop.png (see measured.recon_*_err and blender/previews/mat_<m>_envmatte_check.png).",
+  "files": {
+   "mat_<m>_self.png": "RGBA 16-bit. RGB = light the material sends to the camera with a BLACK background (studio reflections, internal scatter of studio light, rim), sRGB-ENCODED (decode to linear before adding), premultiplied by coverage (black outside). A = sphere coverage (antialiased, linear). Import: sRGB / source_color, disable fix_alpha_border, no premultiply.",
+   "mat_<m>_trans.png": "RGB 16-bit LINEAR (raw, import as non-colour). Total per-channel transmittance T = render(bg emission 1.0) - render(bg emission 0), computed in numpy on float EXR pixels, lights off + world black in both (by linearity identical to the lit subtraction, minus the light noise). Same seed, no adaptive sampling, no denoise. Outside sphere = 1.",
+   "mat_<m>_refr.png": "RGB 16-bit LINEAR raw codes, PRIMARY layer. The plane emitted the codes R=(x+6)/12, G=(z+6)/12, B=1 (rendered as separate grey passes with the same seed so paths are identical; RG = sum_c U_c / sum_c T_c, i.e. 'divided by the B / throughput pass'). Decode: x_plane = R*12-6, z_plane = G*12-6 (Blender plane coords = Godot view x / view y, units = sphere radii, plane 2.0 behind the centre). B = primary throughput (mean over RGB, linear). An undistorted pixel at image coords (sx, sz) in [-1,1] would have R=(sx+6)/12; where throughput ~0 the straight-through code is stored. Do NOT mipmap / filter across the silhouette.",
+   "mat_<m>_scat.png": "RGB 16-bit LINEAR, SECONDARY layer: R,G = mean hit position (same code as refr), B = std-dev of the hit position / 4 (plane units). Secondary throughput = trans - refr.b (per channel).",
+   "mat_<m>_aux.png": "RGB 16-bit LINEAR. R = effective optical path length inside the material / 4 (units; = ln(T_clear / T_absorbing) for a non-scattering copy with grey sigma=1 absorption) -> Beer-Lambert tinting of the primary layer: Tp_tinted = Tp * exp(-(sigma_tint - sigma_neutral) * density_scale * R*4) with sigma in per-unit at PET scale (materials.*_per_unit). G = primary-layer spread / 2 (std-dev of the primary hit position; ~0 except dispersion/rim). B = coverage.",
+   "mat_<m>_color_self.png / _color_trans.png": "same as self / trans for the reference colour version (pink gelee, green slime); refr/scat/aux are shared (same IOR / geometry)."
+  },
+  "game_mapping_hint": "Real-time: sample all maps with the view-space normal (matcap uv = n.xy*0.5+0.5). For a matcap pixel with straight-through point S=(sx,sz)=n.xy, the background is displaced by D = P - S plane units; on screen D * (pet radius in pixels) when the desktop is considered 1 pet radius behind the pet's back (that is the setup the maps encode; scale D for artistic strength). Background blur radius = spread * pet radius in pixels (use mip LOD / a pre-blurred desktop). Tint = multiply the neutral maps (self roughly by tint, Tp by exp(-sigma*thickness), secondary by tint), or use the *_color_* maps directly for the reference colours.",
+  "materials": {
+   "gelee": {
+    "ior": 1.38,
+    "roughness": 0.01,
+    "neutral_absorption_per_unit": [
+     0.06,
+     0.06,
+     0.06
+    ],
+    "scatter_density_per_unit": 0.12,
+    "scatter_anisotropy": 0.25,
+    "files": {
+     "self": "res://assets/textures/mat_gelee_self.png",
+     "trans": "res://assets/textures/mat_gelee_trans.png",
+     "refr": "res://assets/textures/mat_gelee_refr.png",
+     "scat": "res://assets/textures/mat_gelee_scat.png",
+     "aux": "res://assets/textures/mat_gelee_aux.png",
+     "color_self": "res://assets/textures/mat_gelee_color_self.png",
+     "color_trans": "res://assets/textures/mat_gelee_color_trans.png"
+    },
+    "reference_color_hex": "ff4f86",
+    "reference_color_absorption_per_unit": [
+     -0.0,
+     2.5486,
+     1.4338
+    ],
+    "reference_color_definition": "Beer-Lambert: transmittance over 1.00 units of material = the colour (linear)",
+    "measured": {
+     "dispersion_dx_R_minus_B_mean_abs": 0.0,
+     "T_color_center": [
+      0.8926,
+      0.0702,
+      0.2132
+     ],
+     "T_center": [
+      0.8385,
+      0.8385,
+      0.8385
+     ],
+     "T_ballistic_center": 0.7928,
+     "T_mean_inside": [
+      0.8283,
+      0.8283,
+      0.8283
+     ],
+     "thickness_center": 1.9999,
+     "thickness_max": 2.0079,
+     "spread_ballistic_center": 0.0004,
+     "spread_scattered_center": 2.6078,
+     "refr_center_xz": [
+      -0.0002,
+      -0.0002
+     ],
+     "refr_x_at_r": {
+      "0.25": -0.0318,
+      "0.5": -0.1078,
+      "0.75": -0.3432,
+      "0.9": -0.8233,
+      "0.97": -1.7689
+     },
+     "total_time_s": 606.9,
+     "recon_err_srgb_vs_cycles_from_shipped_files": {
+      "neutral_whole_image": 0.0134,
+      "neutral_inside_sphere": 0.0111,
+      "color_whole_image": 0.0184,
+      "color_inside_sphere": 0.0174
+     }
+    }
+   },
+   "slime": {
+    "ior": 1.34,
+    "roughness": 0.06,
+    "neutral_absorption_per_unit": [
+     0.05,
+     0.05,
+     0.05
+    ],
+    "scatter_density_per_unit": 3.0,
+    "scatter_anisotropy": 0.45,
+    "files": {
+     "self": "res://assets/textures/mat_slime_self.png",
+     "trans": "res://assets/textures/mat_slime_trans.png",
+     "refr": "res://assets/textures/mat_slime_refr.png",
+     "scat": "res://assets/textures/mat_slime_scat.png",
+     "aux": "res://assets/textures/mat_slime_aux.png",
+     "color_self": "res://assets/textures/mat_slime_color_self.png",
+     "color_trans": "res://assets/textures/mat_slime_color_trans.png"
+    },
+    "reference_color_hex": "8ef25c",
+    "reference_color_absorption_per_unit": [
+     1.3075,
+     0.1189,
+     2.2347
+    ],
+    "reference_color_definition": "Beer-Lambert: transmittance over 1.00 units of material = the colour (linear)",
+    "coat": {
+     "weight": 1.0,
+     "roughness": 0.02,
+     "ior": 1.4
+    },
+    "bump": "noise scale 2.2 strength 0.22 (wobble) + noise scale 14 strength 0.05",
+    "measured": {
+     "dispersion_dx_R_minus_B_mean_abs": 0.0,
+     "T_color_center": [
+      0.1825,
+      0.3385,
+      0.086
+     ],
+     "T_center": [
+      0.3318,
+      0.3318,
+      0.3318
+     ],
+     "T_ballistic_center": 0.0429,
+     "T_mean_inside": [
+      0.4054,
+      0.4054,
+      0.4054
+     ],
+     "thickness_center": 2.0042,
+     "thickness_max": 2.0143,
+     "spread_ballistic_center": 0.0116,
+     "spread_scattered_center": 2.8473,
+     "refr_center_xz": [
+      0.0062,
+      0.0021
+     ],
+     "refr_x_at_r": {
+      "0.25": -0.0278,
+      "0.5": -0.0527,
+      "0.75": -0.2651,
+      "0.9": -0.7153,
+      "0.97": -1.4268
+     },
+     "total_time_s": 1424.1,
+     "recon_err_srgb_vs_cycles_from_shipped_files": {
+      "neutral_whole_image": 0.0139,
+      "neutral_inside_sphere": 0.0128,
+      "color_whole_image": 0.0401,
+      "color_inside_sphere": 0.0462
+     }
+    }
+   },
+   "verre": {
+    "ior": 1.5,
+    "roughness": 0.0,
+    "neutral_absorption_per_unit": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scatter_density_per_unit": 0.0,
+    "scatter_anisotropy": 0.0,
+    "files": {
+     "self": "res://assets/textures/mat_verre_self.png",
+     "trans": "res://assets/textures/mat_verre_trans.png",
+     "refr": "res://assets/textures/mat_verre_refr.png",
+     "scat": "res://assets/textures/mat_verre_scat.png",
+     "aux": "res://assets/textures/mat_verre_aux.png"
+    },
+    "dispersion_ior_rgb": [
+     1.488,
+     1.5,
+     1.518
+    ],
+    "measured": {
+     "dispersion_dx_R_minus_B_mean_abs": 0.02238,
+     "T_center": [
+      0.9326,
+      0.9377,
+      0.9288
+     ],
+     "T_ballistic_center": 0.9218,
+     "T_mean_inside": [
+      0.898,
+      0.8946,
+      0.8899
+     ],
+     "thickness_center": 2.0,
+     "thickness_max": 3.0336,
+     "spread_ballistic_center": 0.0008,
+     "spread_scattered_center": 0.0,
+     "refr_center_xz": [
+      -0.0006,
+      -0.0006
+     ],
+     "refr_x_at_r": {
+      "0.25": -0.0925,
+      "0.5": -0.2376,
+      "0.75": -0.5855,
+      "0.9": -1.2692,
+      "0.97": -2.9771
+     },
+     "total_time_s": 664.2,
+     "recon_err_srgb_vs_cycles_from_shipped_files": {
+      "neutral_whole_image": 0.0459,
+      "neutral_inside_sphere": 0.0557
+     },
+     "note_recon_error": "residual error = dispersion colour fringes (not encoded) + 1-2 px edges"
+    },
+    "note": "trans stored as grey (luminance), lightly smoothed inside the sphere: the 3-closure dispersion trick makes per-channel throughput very noisy while real glass throughput is colourless. Dispersion = measured mean |x_R - x_B| of the primary hit = 0.022 plane units: in game offset the background sample per channel by (P - S) * (1 +- ~0.01-0.02) for colour fringes."
+   }
+  },
+  "render_settings": {
+   "device": "CPU (Cycles, i5-10400F); GPU HIP also supported with cpu=0",
+   "coded_passes": "gelee/slime 384 spp, verre 1024 spp; fixed seed 0, no adaptive, no denoise, no clamp; caustics on; 32 bounces",
+   "self_pass": "256 spp adaptive (threshold .006, min 64) + OpenImageDenoise (albedo+normal)",
+   "filter": "Blackman-Harris 1.2 px",
+   "primary_mask": "plane emission x (Light Path Ray Depth == 2); direct view (1-coverage) added analytically",
+   "times_s": {
+    "gelee": 606.9,
+    "slime": 1424.1,
+    "verre": 664.2
+   }
+  }
+ },
+ "opaque_matcaps": {
+  "_doc": "512x512 RGBA 8-bit sRGB, transparent background (straight alpha), same ortho unit sphere + studio rig, like fur_matcap.png. Neutral matcaps are meant to be multiplied by the tint in linear space.",
+  "materials": {
+   "pate": {
+    "matcap": "res://assets/textures/mat_pate_matcap.png",
+    "matcap_color": "res://assets/textures/mat_pate_matcap_color.png",
+    "tint_hex_for_neutral": "f1d6a8",
+    "shader": "Principled, random-walk SSS weight 1 (radius colour (1,.6,.35) / neutral (1,.9,.8), scale .03), roughness .42 -> .95 under flour, specular .5, sheen .3/.3; flour = low-freq zones (noise 2.2) x fine dust (noise 120) + light veil; bump = soft lumps (noise 2.4, .6) + fermentation pores (smooth voronoi 30, .55) + grain (noise 110, .3)",
+    "params": {
+     "neutral_base": [
+      0.8,
+      0.795,
+      0.785
+     ],
+     "color_hex": "f1d6a8",
+     "radius_color": [
+      1.0,
+      0.6,
+      0.35
+     ],
+     "radius_neutral": [
+      1.0,
+      0.9,
+      0.8
+     ],
+     "sss_scale": 0.03,
+     "rough": 0.42,
+     "flour_rough": 0.95,
+     "sheen": 0.3,
+     "sheen_rough": 0.3,
+     "spec": 0.5,
+     "flour_max": 0.95
+    }
+   },
+   "chrome": {
+    "matcap": "res://assets/textures/mat_chrome_matcap.png",
+    "shader": "metallic 1, base (.93,.93,.95), roughness .035"
+   },
+   "plastique": {
+    "matcap": "res://assets/textures/mat_plastique_matcap.png",
+    "neutral_base_linear": 0.86,
+    "shader": "base .86 grey, roughness .32, coat .85/.05, SSS .12 scale .03 (tint: multiply)"
+   },
+   "bois": {
+    "matcap": "res://assets/textures/mat_bois_matcap.png",
+    "base_hex": "8a5a36",
+    "shader": "base 8a5a36, roughness .5, varnish coat 1.0 roughness .03; grain procedural in game (matcap = lighting/varnish response on this mid-brown; divide by base colour to re-tint)"
+   }
+  }
+ },
+ "reference_renders": {
+  "_doc": "blender/previews/mat_ref_<m>.png : what the game must match. The pet (body_mochi + 2x eye_dot + mouth_smile, eyes at anchor + n*0.01 with n = normalize(eye_n + (0,0,1.3)) Godot, mouth n = normalize(mouth_n + (0,0,1))) stands on z=0 (no floor, no shadow catcher) in front of blender/previews/backdrop.png shown on an unlit emissive plane. Standard view transform.",
+  "camera_blender": {
+   "location": [
+    0.0,
+    -6.0,
+    0.55
+   ],
+   "look_direction": [
+    0,
+    1,
+    0
+   ],
+   "up": [
+    0,
+    0,
+    1
+   ],
+   "projection": "perspective",
+   "sensor_fit": "VERTICAL",
+   "fov_vertical_deg": 24.0,
+   "resolution": [
+    600,
+    600
+   ]
+  },
+  "camera_godot": {
+   "position": [
+    0.0,
+    0.55,
+    6.0
+   ],
+   "look_direction": [
+    0,
+    0,
+    -1
+   ],
+   "keep_aspect": "KEEP_HEIGHT",
+   "fov": 24.0
+  },
+  "backdrop_plane_blender": {
+   "center": [
+    0.0,
+    0.62,
+    0.55
+   ],
+   "size": [
+    6.0,
+    6.0
+   ],
+   "normal": [
+    0,
+    -1,
+    0
+   ],
+   "uv": "image u -> +X (right), image v -> +Z (up); image top row at z = 3.55",
+   "image": "blender/previews/backdrop.png (1024x1024 sRGB)",
+   "emission_strength": 1.0,
+   "lit": false,
+   "casts_shadow": false
+  },
+  "backdrop_plane_godot": {
+   "center": [
+    0.0,
+    0.55,
+    -0.62
+   ],
+   "size": [
+    6.0,
+    6.0
+   ],
+   "normal": [
+    0,
+    0,
+    1
+   ]
+  },
+  "plane_ray_visibility": "transparent materials: camera, glossy, transmission, volume-scatter (not diffuse, no shadow). Opaque materials: camera only (matcap-like).",
+  "colors": {
+   "gelee": "ff4f86",
+   "slime": "8ef25c",
+   "verre": null,
+   "pate": "f1d6a8",
+   "chrome": null,
+   "plastique": "ff7eb3",
+   "bois": "8a5a36"
+  },
+  "files": {
+   "gelee": "blender/previews/mat_ref_gelee.png",
+   "slime": "blender/previews/mat_ref_slime.png",
+   "verre": "blender/previews/mat_ref_verre.png",
+   "pate": "blender/previews/mat_ref_pate.png",
+   "chrome": "blender/previews/mat_ref_chrome.png",
+   "plastique": "blender/previews/mat_ref_plastique.png",
+   "bois": "blender/previews/mat_ref_bois.png"
+  }
+ },
+ "render_times_s_last_run": {
+  "coverage": 1.1,
+  "verre_tot_black": 77.3,
+  "verre_tot_white": 77.0,
+  "verre_tot_u": 84.8,
+  "verre_tot_v": 80.4,
+  "verre_tot_q": 81.9,
+  "verre_prim_white": 40.3,
+  "verre_prim_u": 41.7,
+  "verre_prim_v": 41.5,
+  "verre_prim_q": 41.6,
+  "verre_thick_clear": 20.2,
+  "verre_thick_abs": 21.6,
+  "verre_self_neutral": 22.4,
+  "verre_gt_neutral": 25.0
+ }
+}

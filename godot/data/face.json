@@ -1,0 +1,197 @@
+{
+ "eyes": {
+  "dot": {
+   "name": "Points",
+   "price": 0,
+   "pupil_range": [
+    0.012,
+    0.01
+   ],
+   "iris": "",
+   "scale": 1.0,
+   "mirror": false
+  },
+  "googly": {
+   "name": "Yeux rigolos",
+   "price": 0,
+   "pupil_range": [
+    0.03,
+    0.03
+   ],
+   "iris": "",
+   "scale": 1.0,
+   "mirror": false
+  },
+  "shiny": {
+   "name": "Yeux brillants",
+   "price": 180,
+   "pupil_range": [
+    0.011,
+    0.013
+   ],
+   "iris": "6fb1f2",
+   "scale": 1.0,
+   "mirror": true
+  },
+  "button": {
+   "name": "Boutons",
+   "price": 120,
+   "pupil_range": [
+    0.0,
+    0.0
+   ],
+   "iris": "",
+   "scale": 1.0,
+   "mirror": false
+  },
+  "star": {
+   "name": "Étoiles",
+   "price": 200,
+   "pupil_range": [
+    0.0,
+    0.0
+   ],
+   "iris": "ffcc33",
+   "scale": 1.0,
+   "mirror": false
+  },
+  "heart": {
+   "name": "Cœurs",
+   "price": 220,
+   "pupil_range": [
+    0.0,
+    0.0
+   ],
+   "iris": "ff5d86",
+   "scale": 1.0,
+   "mirror": false
+  },
+  "sleepy": {
+   "name": "Endormis",
+   "price": 80,
+   "pupil_range": [
+    0.0,
+    0.0
+   ],
+   "iris": "",
+   "scale": 1.0,
+   "mirror": false
+  },
+  "lashes": {
+   "name": "Cils",
+   "price": 100,
+   "pupil_range": [
+    0.0,
+    0.0
+   ],
+   "iris": "",
+   "scale": 1.0,
+   "mirror": true
+  },
+  "beady": {
+   "name": "Petites perles",
+   "price": 60,
+   "pupil_range": [
+    0.012,
+    0.01
+   ],
+   "iris": "",
+   "scale": 1.0,
+   "mirror": false
+  },
+  "sparkle": {
+   "name": "Étincelles",
+   "price": 150,
+   "pupil_range": [
+    0.01,
+    0.008
+   ],
+   "iris": "",
+   "scale": 1.0,
+   "mirror": false
+  },
+  "cat": {
+   "name": "Yeux de chat",
+   "price": 160,
+   "pupil_range": [
+    0.014,
+    0.01
+   ],
+   "iris": "a6d84b",
+   "scale": 1.0,
+   "mirror": false
+  },
+  "puppy": {
+   "name": "Yeux de chiot",
+   "price": 140,
+   "pupil_range": [
+    0.01,
+    0.008
+   ],
+   "iris": "7ab8ff",
+   "scale": 1.0,
+   "mirror": false
+  },
+  "swirl": {
+   "name": "Spirales",
+   "price": 250,
+   "pupil_range": [
+    0.0,
+    0.0
+   ],
+   "iris": "",
+   "scale": 1.0,
+   "mirror": false
+  }
+ },
+ "mouths": {
+  "smile": {
+   "name": "Sourire",
+   "price": 0
+  },
+  "cat": {
+   "name": "Bouche de chat",
+   "price": 60
+  },
+  "open": {
+   "name": "Grand sourire",
+   "price": 80
+  },
+  "fang": {
+   "name": "Petit croc",
+   "price": 100
+  },
+  "grin": {
+   "name": "Rire éclatant",
+   "price": 120
+  },
+  "tongue": {
+   "name": "Langue tirée",
+   "price": 90
+  },
+  "wavy": {
+   "name": "Gêné",
+   "price": 70
+  },
+  "beak": {
+   "name": "Bec",
+   "price": 150
+  },
+  "kiss": {
+   "name": "Bisou",
+   "price": 110
+  },
+  "tiny": {
+   "name": "Mini sourire",
+   "price": 40
+  },
+  "bunny": {
+   "name": "Lapinou",
+   "price": 130
+  },
+  "blep": {
+   "name": "Blep",
+   "price": 90
+  }
+ }
+}

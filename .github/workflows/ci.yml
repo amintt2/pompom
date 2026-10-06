@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: "4.7.2"
+
+jobs:
+  check:
+    name: Vérification du projet
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Godot
+        uses: actions/cache@v4
+        with:
+          path: ~/godot
+          key: godot-linux-${{ env.GODOT_VERSION }}
+
+      - name: Installer Godot (headless)
+        run: |
+          if [ ! -x ~/godot/godot ]; then
+            mkdir -p ~/godot
+            curl -sSL -o /tmp/godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+            unzip -q /tmp/godot.zip -d ~/godot
+            mv ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 ~/godot/godot
+          fi
+          ~/godot/godot --version
+
+      - name: Importer les ressources
+        run: ~/godot/godot --headless --path godot --import 2>&1 | tail -n 5 || true
+
+      - name: Compiler tous les scripts et shaders
+        run: |
+          ~/godot/godot --headless --path godot check_scripts.tscn 2>&1 | tee check.log
+          if grep -E "^FAIL|SCRIPT ERROR|Parse Error" check.log; then
+            echo "::error::Des scripts ne compilent pas"
+            exit 1
+          fi
+
+      - name: Test des mises à jour (comparaison de versions)
+        run: ~/godot/godot --headless --path godot res://tests/updater_test.tscn 2>&1 | tee updater.log && grep -q "8/8 ok" updater.log
+
+      - name: Valider les données JSON
+        run: |
+          python3 - <<'EOF'
+          import glob, json
+          for f in glob.glob("godot/data/*.json"):
+              json.load(open(f, encoding="utf-8"))
+              print("ok", f)
+          EOF
+
+      - name: Vérifier la syntaxe des scripts Blender / Python
+        run: python3 -m py_compile blender/*.py

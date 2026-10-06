@@ -1,0 +1,103 @@
+name: Release
+
+# Publier une version : creer un tag "vX.Y.Z" (ou "vX.Y.Z-beta") et le pousser.
+#   git tag v0.2.0 && git push origin v0.2.0
+# Le jeu installe verifie les Releases et propose la mise a jour (verification SHA-256).
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag a (re)construire (ex. v0.1.0-beta)"
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  GODOT_VERSION: "4.7.2"
+
+jobs:
+  windows:
+    name: Build Windows et publication
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Determiner la version
+        id: ver
+        shell: pwsh
+        run: |
+          $tag = "${{ github.event.inputs.tag }}"
+          if (-not $tag) { $tag = "${{ github.ref_name }}" }
+          $version = $tag.TrimStart('v')
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "version=$version" >> $env:GITHUB_OUTPUT
+          $pre = if ($version -match '-') { 'true' } else { 'false' }
+          "prerelease=$pre" >> $env:GITHUB_OUTPUT
+          # la version du jeu doit correspondre au tag
+          $proj = Get-Content godot/project.godot -Raw
+          if ($proj -notmatch "config/version=`"$([regex]::Escape($version))`"") {
+            Write-Error "project.godot (config/version) ne correspond pas au tag $tag"
+          }
+
+      - name: Cache Godot et modeles d'export
+        uses: actions/cache@v4
+        with:
+          path: |
+            tools/godot
+            ~/AppData/Roaming/Godot/export_templates
+          key: godot-win-${{ env.GODOT_VERSION }}
+
+      - name: Installer Godot et les modeles d'export
+        shell: pwsh
+        run: powershell -ExecutionPolicy Bypass -File setup_tools.ps1 -Templates
+
+      - name: Importer et exporter
+        shell: pwsh
+        run: |
+          $g = "tools/godot/Godot_v${{ env.GODOT_VERSION }}-stable_win64_console.exe"
+          & $g --headless --path godot --import 2>&1 | Select-Object -Last 5
+          New-Item -ItemType Directory -Force build | Out-Null
+          & $g --headless --path godot --export-release "Windows" ../build/Pompom.exe 2>&1 | Select-Object -Last 15
+          if (-not (Test-Path build/Pompom.exe)) { Write-Error "Export echoue" }
+          $hash = (Get-FileHash build/Pompom.exe -Algorithm SHA256).Hash.ToLower()
+          "$hash  Pompom.exe" | Out-File -Encoding ascii build/SHA256SUMS.txt
+          Get-Content build/SHA256SUMS.txt
+          Get-Item build/Pompom.exe | Select-Object Name, Length
+
+      - name: Notes de version (CHANGELOG)
+        shell: pwsh
+        run: |
+          $v = "${{ steps.ver.outputs.version }}"
+          $lines = Get-Content CHANGELOG.md -Encoding utf8
+          $out = @(); $in = $false
+          foreach ($l in $lines) {
+            if ($l -match '^## \[') { if ($in) { break }; if ($l -match [regex]::Escape("[$v]")) { $in = $true; continue } }
+            if ($in) { $out += $l }
+          }
+          if (-not $out) { $out = @("Version $v") }
+          $out += ""
+          $out += "---"
+          $out += "**Installation :** télécharge ``Pompom.exe`` et lance-le. Windows 10/11, carte graphique compatible DirectX 12."
+          $out += "L'exe n'est pas signé : Windows SmartScreen peut afficher « Informations complémentaires → Exécuter quand même »."
+          $out += "Empreinte SHA-256 dans ``SHA256SUMS.txt``. Les versions installées se mettent à jour d'elles-mêmes (clic droit → Mettre à jour)."
+          $out | Out-File -Encoding utf8 notes.md
+
+      - name: Publier la Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = "${{ steps.ver.outputs.tag }}"
+          $pre = if ("${{ steps.ver.outputs.prerelease }}" -eq 'true') { '--prerelease' } else { '--latest' }
+          gh release view $tag 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag build/Pompom.exe build/SHA256SUMS.txt --clobber
+          } else {
+            gh release create $tag build/Pompom.exe build/SHA256SUMS.txt --title "Pompom $tag" --notes-file notes.md $pre
+          }
