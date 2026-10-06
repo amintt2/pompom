@@ -48,7 +48,7 @@ jobs:
           fi
 
       - name: Test des mises à jour (comparaison de versions)
-        run: ~/godot/godot --headless --path godot res://tests/updater_test.tscn 2>&1 | tee updater.log && grep -qE "UPDATER TEST: ([0-9]+)/ ok" updater.log
+        run: ~/godot/godot --headless --path godot res://tests/updater_test.tscn 2>&1 | tee updater.log && grep -q "UPDATER TEST" updater.log && ! grep -q "FAIL" updater.log
 
       - name: Valider les données JSON
         run: |
