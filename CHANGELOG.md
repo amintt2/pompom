@@ -3,6 +3,11 @@
 Toutes les versions de Pompom. Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/)
 et les numéros suivent [SemVer](https://semver.org/lang/fr/).
 
+## [0.5.1-beta] - 2026-10-06
+
+### Corrigé
+- **Il restait invisible dans Rocket League** : le jeu était classé « compétitif », donc il se cachait complètement. Il reste maintenant visible (en périscope au bord de l'écran, ou à la place où tu le poses) pour fêter tes buts.
+
 ## [0.5.0-beta] - 2026-10-06
 
 ### Il regarde ton écran (option, bêta)

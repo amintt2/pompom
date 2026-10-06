@@ -251,7 +251,7 @@ const MEET_TITLES := ["réunion", "reunion", "meeting", "meet -", "meet –", "a
 ## Jeux competitifs : il se cache completement (anti-triche, concentration).
 const COMPETITIVE := ["valorant", "valorant-win64-shipping", "cs2", "league of legends", "overwatch", "r5apex",
 	"fortniteclient-win64-shipping", "dota2", "rainbowsix", "rainbowsix_be", "pubg", "tslgame", "eft", "escapefromtarkov",
-	"rocketleague", "marvelrivals", "deadlock"]
+	"marvelrivals", "deadlock"]  # (pas Rocket League : il y reste visible pour feter tes buts)
 
 
 func _is_meeting() -> bool:
