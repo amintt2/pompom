@@ -71,6 +71,8 @@ func _debug_overrides(args: PackedStringArray) -> void:
 		_drop_test()
 	if args.has("--feed-test"):
 		_feed_test()
+	if args.has("--modes-test"):
+		_modes_test()
 	if args.has("--plat-test"):
 		_plat_test()
 	if args.has("--phone"):
@@ -182,6 +184,115 @@ func _lookdev(mat_id: String) -> void:
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png(ProjectSettings.globalize_path("user://lookdev_%s.png" % mat_id))
 	print("LOOKDEV saved ", mat_id)
+	get_tree().quit()
+
+
+## Test des modes de vie et de la physique des fenetres (situations simulees).
+func _modes_test() -> void:
+	await get_tree().create_timer(3.0).timeout
+	var dc := get_node_or_null("Desktop")
+	Activity.set_process(false)
+	var res := {"ok": 0, "ko": 0}
+	var check := func(c: bool, what: String):
+		if c:
+			res["ok"] += 1
+		else:
+			res["ko"] += 1
+			print("MODES FAIL ", what)
+	print("MODES screens=", DisplayServer.get_screen_count())
+	# 1) en jeu : les bulles vont dans la boite aux lettres
+	Activity.category = "game"
+	Activity.proc_name = "hades"
+	Activity.game_name = "Hades"
+	Activity.fullscreen = false
+	dc._update_mode()
+	check.call(dc.mode == "game" and dc._quiet(), "mode jeu silencieux")
+	dc._say("Bravo !")
+	check.call(dc._mail.size() == 1, "bulle mise dans la boite aux lettres")
+	dc._session["start"] = Time.get_ticks_msec() / 1000.0 - 25.0 * 60.0
+	# 2) plein ecran
+	Activity.fullscreen = true
+	dc._update_mode()
+	await get_tree().create_timer(1.0).timeout
+	if DisplayServer.get_screen_count() == 1:
+		check.call(dc.state == "peek" and dc._pet_scale_target < 0.7, "periscope en plein ecran")
+	# 3) fin du jeu : recap + courrier livre
+	Activity.category = "work"
+	Activity.fullscreen = false
+	dc._update_mode()
+	await get_tree().create_timer(2.5).timeout
+	check.call(dc.hud.mail_count >= 2, "courrier livre (%d) avec recap" % dc.hud.mail_count)
+	print("MODES mail=", dc._mail)
+	check.call(dc.state in ["ground", "walk"], "retour sur la barre des taches (" + dc.state + ")")
+	# 4) visio
+	Activity.meeting = true
+	dc._update_mode()
+	await get_tree().create_timer(1.0).timeout
+	check.call(dc.mode == "meeting" and dc.emotes.mute_emotes and dc._pet_scale_target < 0.7, "visio : petit et muet")
+	Activity.meeting = false
+	dc._update_mode()
+	# 5) jeu competitif : cache
+	Activity.category = "game"
+	Activity.proc_name = "valorant"
+	dc._update_mode()
+	await get_tree().create_timer(0.8).timeout
+	check.call(dc.state == "hidden", "competitif : cache")
+	Activity.category = "work"
+	Activity.proc_name = "code"
+	dc._update_mode()
+	await get_tree().create_timer(3.0).timeout
+	# 6) fenetre : secousse, retrecissement, maximisation, fermeture
+	Activity.windows = [{"id": 77, "rect": Rect2(800, 700, 900, 400), "max": false}]
+	var plats: Array = dc._platforms()
+	for pl in plats:
+		if int(pl["id"]) == 77:
+			dc.plat = pl.duplicate()
+			dc.pos = Vector2(1200 - dc.W * 0.5, 700 - dc.H + dc.margin)
+			dc.state = "ground"
+			dc.pet.airborne = false
+	await get_tree().create_timer(0.5).timeout
+	check.call(int(dc.plat["id"]) == 77, "pose sur la fenetre")
+	# retrecissement : le bord droit passe sous lui
+	Activity.windows = [{"id": 77, "rect": Rect2(800, 700, 360, 400), "max": false}]
+	await get_tree().create_timer(0.3).timeout
+	check.call(int(dc.plat["id"]) == 77 and dc._center_x() <= 1160.0, "pousse par le bord (cx=%d)" % dc._center_x())
+	Activity.windows = [{"id": 77, "rect": Rect2(800, 700, 900, 400), "max": false}]
+	await get_tree().create_timer(0.3).timeout
+	# secousse
+	for i in 6:
+		Activity.windows = [{"id": 77, "rect": Rect2(800 + (80 if i % 2 == 0 else -80), 700, 900, 400), "max": false}]
+		await get_tree().create_timer(0.12).timeout
+	await get_tree().create_timer(1.2).timeout
+	check.call(dc.state in ["fall", "ground", "hang"], "secousse : vertige (%s)" % dc.state)
+	# maximisation : ascenseur
+	await get_tree().create_timer(2.0).timeout
+	Activity.windows = [{"id": 78, "rect": Rect2(900, 600, 900, 400), "max": false}]
+	for pl in dc._platforms():
+		if int(pl["id"]) == 78:
+			dc.plat = pl.duplicate()
+			dc.pos = Vector2(1300 - dc.W * 0.5, 600 - dc.H + dc.margin)
+			dc.state = "ground"
+	await get_tree().create_timer(0.3).timeout
+	Activity.windows = [{"id": 78, "rect": Rect2(0, 0, 2560, 1380), "max": true}]
+	await get_tree().create_timer(0.1).timeout
+	check.call(dc.state == "fall" and dc.vel.y < 0.0, "maximisee : ascenseur")
+	await get_tree().create_timer(3.0).timeout
+	# fermeture : suspendu puis chute
+	Activity.windows = [{"id": 79, "rect": Rect2(900, 600, 900, 400), "max": false}]
+	for pl in dc._platforms():
+		if int(pl["id"]) == 79:
+			dc.plat = pl.duplicate()
+			dc.pos = Vector2(1300 - dc.W * 0.5, 600 - dc.H + dc.margin)
+			dc.state = "ground"
+	await get_tree().create_timer(0.3).timeout
+	print("MODES avant fermeture state=", dc.state, " plat=", dc.plat["id"])
+	Activity.windows = []
+	await get_tree().create_timer(0.1).timeout
+	print("MODES apres fermeture state=", dc.state)
+	check.call(dc.state == "hang", "fermee : suspendu en l'air")
+	await get_tree().create_timer(0.8).timeout
+	check.call(dc.state in ["fall", "ground"], "puis il tombe")
+	print("MODES TEST: %d ok, %d ko" % [res["ok"], res["ko"]])
 	get_tree().quit()
 
 

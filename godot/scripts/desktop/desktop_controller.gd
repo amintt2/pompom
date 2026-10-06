@@ -57,6 +57,17 @@ var suggest: SuggestClient
 var _needs_t := 240.0
 var _eating := false
 var _hover_needs_t := 0.0
+## Mode de vie : normal | game | fs (plein ecran) | comp (jeu competitif) | meeting (visio) | video
+var mode := "normal"
+var _mail: Array[String] = []  # boite aux lettres : messages mis de cote pendant le jeu / la visio
+var _mail_ready_t := 0.0
+var _reading_mail := false
+var _session := {}  # partie en cours : {name, start, coins}
+var _home_screen := -1
+var _pet_scale_target := 1.0
+var _dive_t := 0.0
+var _hang_t := 0.0
+var _shake := {"last_dx": 0.0, "flips": [], "cd": 0.0}
 
 
 func setup(p_stage: PetStage, p_emotes: EmoteLayer) -> void:
@@ -89,6 +100,11 @@ func setup(p_stage: PetStage, p_emotes: EmoteLayer) -> void:
 	hud.stage = stage
 	emotes.get_parent().add_child(hud)
 	win.files_dropped.connect(_on_files_dropped)
+	emotes.say_filter = func(text: String) -> bool:
+		if _quiet() and not _reading_mail:
+			_queue_mail(text)
+			return true
+		return false
 	clip = ClipboardKeeper.new()
 	clip.name = "Clipboard"
 	add_child(clip)
@@ -245,31 +261,106 @@ func _follow_platform() -> void:
 		if int(w["id"]) == int(plat["id"]):
 			found = w
 			break
-	if found.is_empty() or found["max"]:
+	if found.is_empty():
 		_fall_off()
+		return
+	if found["max"]:
+		_elevator()  # la fenetre est maximisee : il est propulse vers le haut
 		return
 	var r: Rect2 = found["rect"]
 	var old: Rect2 = plat["rect"]
 	if old.size != Vector2.ZERO and r.position != old.position:
-		pos.x += r.position.x - old.position.x
+		var dx := r.position.x - old.position.x
+		pos.x += dx
+		_track_shake(dx)
 	plat["rect"] = r
 	plat["y"] = r.position.y
 	var cx := _center_x()
+	var mine: Array = []
 	for p in _platforms():
-		if int(p["id"]) == int(plat["id"]) and cx >= float(p["x0"]) - 6.0 and cx <= float(p["x1"]) + 6.0:
-			plat["x0"] = p["x0"]
-			plat["x1"] = p["x1"]
+		if int(p["id"]) == int(plat["id"]):
+			mine.append(p)
+			if cx >= float(p["x0"]) - 6.0 and cx <= float(p["x1"]) + 6.0:
+				plat["x0"] = p["x0"]
+				plat["x1"] = p["x1"]
+				return
+	# la fenetre retrecit sous lui : il est pousse par le bord (tapis roulant)
+	for p in mine:
+		var x0: float = p["x0"]
+		var x1: float = p["x1"]
+		if cx > x1 and cx - x1 < 80.0 * s:
+			pos.x = x1 - _pet_px() * 0.55 - W * 0.5
+			plat["x0"] = x0
+			plat["x1"] = x1
+			pet.yaw = -1.0
+			pet.lean = 0.15
+			return
+		if cx < x0 and x0 - cx < 80.0 * s:
+			pos.x = x0 + _pet_px() * 0.55 - W * 0.5
+			plat["x0"] = x0
+			plat["x1"] = x1
+			pet.yaw = 1.0
+			pet.lean = -0.15
 			return
 	_fall_off()
+
+
+## Fenetre secouee : il a le vertige (la slime colle, le chrome glisse).
+func _track_shake(dx: float) -> void:
+	if absf(dx) < 25.0 * s or float(_shake["cd"]) > 0.0:
+		return
+	var now := Time.get_ticks_msec() / 1000.0
+	var last := float(_shake["last_dx"])
+	if last != 0.0 and signf(dx) != signf(last):
+		var flips: Array = _shake["flips"]
+		flips.append(now)
+		while not flips.is_empty() and now - float(flips[0]) > 1.4:
+			flips.pop_front()
+		if flips.size() >= 3:
+			flips.clear()
+			_shake["cd"] = 4.0
+			_on_shaken(dx)
+	_shake["last_dx"] = dx
+
+
+func _on_shaken(dx: float) -> void:
+	var kind: String = Data.MATERIALS[pet.material_id]["kind"]
+	pet.act_dizzy()
+	if kind == "slime":
+		_say("Je colle, je colle !")
+		return
+	await get_tree().create_timer(0.1 if kind in ["chrome", "glass", "liquid", "wood"] else 0.7).timeout
+	if state not in ["ground", "walk"]:
+		return
+	_say("Waaah !")
+	_stop_move()
+	state = "fall"
+	pet.airborne = true
+	vel = Vector2(signf(dx) * 900.0 * s, -500.0 * s)
+
+
+## Fenetre maximisee : il est propulse vers le haut, se cogne, puis retombe.
+func _elevator() -> void:
+	_stop_move()
+	pet.stop_action()
+	_set_taskbar()
+	state = "fall"
+	pet.airborne = true
+	vel = Vector2(0, -2300.0 * s)
+	_say("Ascenseur !")
 
 
 func _fall_off() -> void:
 	_stop_move()
 	pet.stop_action()
-	state = "fall"
+	# chute facon dessin anime : il reste suspendu une seconde, regarde la camera, puis tombe
+	state = "hang"
+	_hang_t = 0.5
 	pet.airborne = true
-	vel = Vector2(randf_range(-60.0, 60.0) * s, -120.0 * s)
-	if randf() < 0.5:
+	pet.set_expression("surprised", 1.2)
+	pet.look = Vector2(0.0, 0.0)
+	vel = Vector2(randf_range(-40.0, 40.0) * s, 0.0)
+	if randf() < 0.6:
 		_say("Ouh la !")
 
 
@@ -365,6 +456,23 @@ func _process(delta: float) -> void:
 			_brain(delta)
 		"peek":
 			_process_peek(dist, delta)
+		"spot":
+			_process_spot(dist, delta)
+		"hang":
+			_hang_t -= delta
+			if _hang_t <= 0.0:
+				state = "fall"
+
+	# taille (periscope / visio / esquive)
+	var tgt := _pet_scale_target * (0.06 if (_dive_t > 0.0 and state == "spot") else 1.0)
+	var k := minf(1.0, delta * (16.0 if _dive_t > 0.0 else 4.0))
+	pet.scale = pet.scale.lerp(Vector3.ONE * tgt, k)
+	_shake["cd"] = maxf(0.0, float(_shake["cd"]) - delta)
+	if _mail_ready_t > 0.0 and not _reading_mail:
+		_mail_ready_t -= delta
+		if _mail_ready_t <= 0.0:
+			_mail.clear()
+			hud.mail_count = 0
 
 	var ip := Vector2i(pos.round())
 	if win.position != ip:
@@ -406,7 +514,7 @@ func _input(event: InputEvent) -> void:
 			PetMenu.open_at(DisplayServer.mouse_get_position(), _menu_items(), _on_menu, self)
 	elif event is InputEventMouseMotion and _press and state != "drag":
 		var mouse2 := Vector2(DisplayServer.mouse_get_position())
-		if mouse2.distance_to(_press_mouse) > 6.0 * s and state in ["ground", "walk", "fall", "peek"]:
+		if mouse2.distance_to(_press_mouse) > 6.0 * s and state in ["ground", "walk", "fall", "peek", "spot", "hang"]:
 			_start_drag()
 
 
@@ -462,6 +570,13 @@ func _end_drag() -> void:
 			GameState.change_fun(6.0)
 			GameState.add_xp(3)
 			GameState.quest_event("throw")
+	if mode == "fs":
+		# en plein ecran : on le pose ou on veut, et il retient cette place pour ce jeu
+		_save_game_spot()
+		state = "spot"
+		pet.airborne = false
+		pet.land(1.2)
+		return
 	state = "fall"
 	pet.airborne = true
 
@@ -480,6 +595,14 @@ func _process_fall(delta: float) -> void:
 		pos.x = sr.end.x - W + half
 		vel.x = -absf(vel.x) * 0.5
 	pet.push_accel(Vector2(0, 0), delta)
+	# plafond (fenetre maximisee sous lui = ascenseur) : il se cogne la tete
+	var ph := pet.height * stage.ppu * pet.scale.y
+	var top_y := pos.y + H - margin - ph
+	if vel.y < 0.0 and top_y < sr.position.y:
+		pos.y += sr.position.y - top_y
+		vel.y = 320.0 * s
+		pet.land(2.5)
+		pet.act_dizzy()
 	# atterrissage sur la surface la plus haute traversee (fenetres, barre des taches)
 	var foot := _foot_y()
 	var prev_foot := foot - prev_v.y * delta
@@ -532,6 +655,9 @@ func _after_landing(impact: float) -> void:
 
 func _poke() -> void:
 	if state == "peek":
+		return
+	if hud.mail_count > 0 and not _quiet():
+		_read_mail()
 		return
 	if suggest and suggest.pending_item():
 		clip.copy_item(suggest.take_pending())
@@ -622,6 +748,8 @@ func _brain(delta: float) -> void:
 	_needs_t -= delta
 	if state != "ground" or pet.busy:
 		return
+	if mode == "meeting":
+		return  # en visio : il reste sage et immobile
 	_think -= delta
 	if _think > 0.0:
 		return
@@ -671,13 +799,16 @@ func _brain(delta: float) -> void:
 						_say(Data.line("work"))
 					return
 			"game":
-				if r < 0.4:
-					pet.act_gaming(randf_range(20.0, 40.0))
+				if not Input.get_connected_joypads().is_empty() or r < 0.4:
+					pet.act_gaming(randf_range(30.0, 60.0))  # manette miroir si une manette est branchee
 					return
 			"media":
 				if r < 0.3:
 					pet.act_dance(4.0)
 					return
+	if mode == "video" and r < 0.7:
+		pet.act_popcorn(randf_range(30.0, 60.0))
+		return
 	var choices := {"look": 3.0, "hop": 1.5, "wiggle": 1.5, "stretch": 1.0}
 	if Activity.category in ["browse", "media", "other"] or (Activity.available and Activity.idle_sec > 30.0):
 		choices["phone"] = 2.0
@@ -758,10 +889,7 @@ func _stop_move() -> void:
 
 # =========================================================================== plein ecran
 func _on_activity_changed() -> void:
-	if Activity.fullscreen and state in ["ground", "walk"]:
-		_enter_peek()
-	elif not Activity.fullscreen and state in ["peek", "hidden"]:
-		_exit_peek()
+	_update_mode()
 	if Activity.is_active() and pet.sleeping and state == "ground":
 		pet.wake_up()
 		var slept := Time.get_ticks_msec() / 1000.0 - _slept_at
@@ -771,43 +899,228 @@ func _on_activity_changed() -> void:
 			_say(Data.line("game"))
 
 
+# =========================================================================== modes de vie
+func _compute_mode() -> String:
+	if Activity.meeting:
+		return "meeting"
+	if Activity.is_competitive() and bool(GameState.settings.get("competitive_hide", true)):
+		return "comp"
+	if Activity.fullscreen and Activity.category in ["game", "media"]:
+		return "fs"
+	if Activity.category == "game":
+		return "game"
+	if Activity.category == "media":
+		return "video"
+	return "normal"
+
+
+## Silence radio (les bulles vont dans la boite aux lettres) : en jeu, en visio, en stream.
+func _quiet() -> bool:
+	return mode in ["game", "fs", "comp", "meeting"] or Activity.recording
+
+
+func _update_mode() -> void:
+	var m := _compute_mode()
+	if m == mode:
+		return
+	var old := mode
+	mode = m
+	emotes.mute_emotes = m == "meeting"
+	var gaming := ["game", "fs", "comp"]
+	if gaming.has(m) and not gaming.has(old):
+		_session = {"name": Activity.game_name, "start": Time.get_ticks_msec() / 1000.0,
+			"coins": int(GameState.stats.get("earned_total", 0)), "comp": m == "comp"}
+	if gaming.has(old) and not gaming.has(m):
+		_end_game_session()
+	if old in ["fs", "comp", "meeting"]:
+		_leave_special()
+	match m:
+		"comp":
+			_enter_hidden()
+		"fs":
+			_enter_fs()
+		"meeting":
+			_enter_meeting()
+		"video":
+			if state == "ground" and not pet.busy and not pet.sleeping:
+				pet.act_popcorn(randf_range(30.0, 60.0))
+		"game":
+			if state == "ground" and not pet.busy and not Input.get_connected_joypads().is_empty():
+				pet.act_gaming(60.0)
+	if not _quiet() and not _mail.is_empty():
+		hud.mail_count = _mail.size()
+		_mail_ready_t = 120.0
+		if state == "ground" and not pet.busy:
+			pet.act_hop(1, 0.1)
+
+
+func _end_game_session() -> void:
+	if _session.is_empty():
+		return
+	var dur := Time.get_ticks_msec() / 1000.0 - float(_session["start"])
+	var coins := int(GameState.stats.get("earned_total", 0)) - int(_session["coins"])
+	var name_: String = str(_session["name"]) if str(_session["name"]) != "" else "ton jeu"
+	if dur >= 20.0 * 60.0:
+		_queue_mail("Session de %s : %s · +%d pièces. GG !" % [name_, _fmt_dur(dur), coins])
+	elif bool(_session.get("comp", false)) and dur >= 5.0 * 60.0:
+		_queue_mail("GG ?")
+	_session = {}
+
+
+static func _fmt_dur(sec: float) -> String:
+	var m := int(sec / 60.0)
+	if m >= 60:
+		return "%d h %02d" % [m / 60, m % 60]
+	return "%d min" % m
+
+
+func _queue_mail(text: String) -> void:
+	if text == "" or _mail.has(text):
+		return
+	_mail.append(text)
+	if _mail.size() > 8:
+		_mail.pop_front()
+
+
+func _read_mail() -> void:
+	_reading_mail = true
+	hud.mail_count = 0
+	_mail_ready_t = 0.0
+	pet.set_expression("happy", 1.5)
+	var msgs := _mail.duplicate()
+	_mail.clear()
+	for t in msgs:
+		emotes.say(t, 3.4)
+		await get_tree().create_timer(3.6).timeout
+	_reading_mail = false
+
+
+## Ecran du jeu (la fenetre au premier plan est en tete de liste).
+func _game_screen() -> int:
+	if not Activity.windows.is_empty():
+		return DisplayServer.get_screen_from_rect(Rect2i(Activity.windows[0]["rect"]))
+	return _screen()
+
+
+func _enter_fs() -> void:
+	_stop_move()
+	pet.stop_action()
+	var gs := _game_screen()
+	var n := DisplayServer.get_screen_count()
+	if n > 1:
+		# 1) un deuxieme ecran : il y va et joue "en parallele"
+		for i in n:
+			if i == gs:
+				continue
+			_home_screen = gs
+			var u := Rect2(DisplayServer.screen_get_usable_rect(i))
+			pos = Vector2(u.end.x - W - 160.0 * s, u.end.y - H + margin - 120.0 * s)
+			_set_taskbar()
+			state = "fall"
+			vel = Vector2.ZERO
+			pet.airborne = true
+			return
+	# 2) sa place pour ce jeu (la ou tu l'as pose une fois)
+	var spots: Dictionary = GameState.settings.get("game_spots", {})
+	var spot = spots.get(Activity.proc_name)
+	if spot != null:
+		var sr := _screen_rect()
+		pos = sr.position + Vector2(float(spot["x"]), float(spot["y"]))
+		state = "spot"
+		_pet_scale_target = float(spot.get("scale", 0.8))
+		pet.airborne = false
+		return
+	# 3) periscope : tout petit, au bord bas de l'ecran, seuls les oreilles et les yeux depassent
+	if bool(GameState.settings.get("hide_fullscreen", false)):
+		_enter_hidden()
+	else:
+		_enter_peek()
+
+
+func _save_game_spot() -> void:
+	if Activity.proc_name == "":
+		return
+	var sr := _screen_rect()
+	var spots: Dictionary = (GameState.settings.get("game_spots", {}) as Dictionary).duplicate()
+	spots[Activity.proc_name] = {"x": pos.x - sr.position.x, "y": pos.y - sr.position.y, "scale": _pet_scale_target}
+	GameState.set_setting("game_spots", spots)
+	emotes.emit_emote("sparkle", 2)
+
+
+func _process_spot(dist: float, delta: float) -> void:
+	# esquive rapide : la souris approche -> il plonge, et revient 3 s plus tard
+	if dist < 120.0 * s:
+		_dive_t = 3.0
+	_dive_t = maxf(0.0, _dive_t - delta)
+	pet.look = Vector2(0.0, 0.1)
+
+
+func _enter_hidden() -> void:
+	_stop_move()
+	pet.stop_action()
+	state = "hidden"
+	var sr := _screen_rect()
+	_move_tween = create_tween()
+	_move_tween.tween_property(self, "pos:y", sr.end.y + 40.0, 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+
+
+func _enter_meeting() -> void:
+	# en visio : tout petit dans le coin, sans un bruit
+	_stop_move()
+	pet.stop_action()
+	_pet_scale_target = 0.55
+	if state in ["ground", "walk"]:
+		var u := _usable()
+		_move_tween = create_tween()
+		_move_tween.tween_property(self, "pos:x", u.end.x - W * 0.5 - 140.0 * s, 0.6).set_trans(Tween.TRANS_SINE)
+	pet.set_base_expression("focused")
+
+
+func _leave_special() -> void:
+	_pet_scale_target = 1.0
+	_dive_t = 0.0
+	pet.set_base_expression("neutral")
+	if state in ["peek", "hidden", "spot"] or _home_screen >= 0:
+		_home_screen = -1
+		_exit_peek()
+
+
 func _enter_peek() -> void:
 	_stop_move()
 	pet.stop_action()
-	var sr := _screen_rect()
-	var hide := bool(GameState.settings.get("hide_fullscreen", false))
-	state = "hidden" if hide else "peek"
-	var target := Vector2(sr.end.x - W * 0.5 - _pet_px() * 0.08, sr.end.y - H + margin)
-	if hide:
-		target.y = sr.end.y + 20.0
-	_move_tween = create_tween()
-	_move_tween.tween_property(self, "pos", target, 0.6).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	var t := create_tween()
-	t.tween_property(pet, "yaw", -1.05, 0.5)
-	pet.look = Vector2(-1.0, 0.2)
+	state = "peek"
+	_pet_scale_target = 0.55
+	pet.yaw = 0.0
+	pet.look = Vector2(0.0, 0.35)
 
 
 func _process_peek(dist: float, delta: float) -> void:
-	# si la souris approche, il se cache un peu plus
+	# periscope : seul le haut de sa tete depasse du bas de l'ecran ; il plonge si la souris approche
 	var sr := _screen_rect()
-	var shy := dist < 140.0 * s
-	_peek_shy = move_toward(_peek_shy, 1.0 if shy else 0.0, delta * 2.0)
-	if _move_tween == null or not _move_tween.is_running():
-		pos.x = sr.end.x - W * 0.5 - _pet_px() * (0.08 - 0.3 * _peek_shy)
-		pos.y = sr.end.y - H + margin
-	pet.look = Vector2(-1.0, 0.2)
+	var ph := pet.height * stage.ppu * pet.scale.y
+	if dist < 120.0 * s:
+		_dive_t = 3.0
+	_dive_t = maxf(0.0, _dive_t - delta)
+	var hidden_frac := 1.1 if _dive_t > 0.0 else 0.58
+	var ty := sr.end.y - H + margin + ph * hidden_frac
+	pos.y = lerpf(pos.y, ty, minf(1.0, delta * (16.0 if _dive_t > 0.0 else 3.0)))
+	pos.x = lerpf(pos.x, sr.end.x - W * 0.5 - 260.0 * s, minf(1.0, delta * 3.0))
+	pet.look = Vector2(0.0, 0.35)
 
 
 func _exit_peek() -> void:
+	# retour a la maison : il retombe sur la barre des taches, a sa place habituelle
 	_set_taskbar()
-	state = "ground"
+	_pet_scale_target = 1.0
 	var home: float = GameState.settings.get("home_x", pos.x)
-	_move_tween = create_tween()
-	_move_tween.tween_property(self, "pos:x", home, 0.5).set_trans(Tween.TRANS_SINE)
+	pos.x = home
+	pos.y = minf(pos.y, _usable().end.y - H + margin - 200.0 * s)
+	state = "fall"
+	vel = Vector2.ZERO
+	pet.airborne = true
 	var t := create_tween()
 	t.tween_property(pet, "yaw", 0.0, 0.4)
 	pet.look = Vector2.ZERO
-	pet.act_hop(1)
 
 
 # =========================================================================== zone cliquable

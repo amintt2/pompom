@@ -47,6 +47,10 @@ var proc_name := ""
 var window_title := ""
 var windows: Array = []  # fenetres visibles, avant -> arriere : {id, rect: Rect2, max: bool}
 var fg_hwnd := 0
+var meeting := false  # visio en cours (Teams, Zoom, Meet...)
+var recording := false  # OBS / logiciel de stream ouvert
+var meet_app_running := false
+var game_name := ""  # nom lisible du jeu en cours
 
 var _pipe: FileAccess
 var _pid := -1
@@ -135,6 +139,7 @@ func _handle(line: String) -> void:
 		return
 	available = true
 	var prev := [category, fullscreen, is_active()]
+	var prev_meet := [meeting, recording]
 	var wl = d.get("wins", [])
 	if typeof(wl) == TYPE_ARRAY:
 		var out: Array = []
@@ -153,7 +158,12 @@ func _handle(line: String) -> void:
 		window_title = str(d.get("title", ""))
 		fullscreen = bool(d.get("fs", false))
 		category = classify(proc_name, window_title, str(d.get("path", "")), fullscreen)
-	if prev != [category, fullscreen, is_active()]:
+		if category == "game":
+			game_name = _game_label(window_title, proc_name)
+	meet_app_running = bool(d.get("meet", false))
+	recording = bool(d.get("rec", false))
+	meeting = _is_meeting()
+	if prev != [category, fullscreen, is_active()] or prev_meet != [meeting, recording]:
 		changed.emit()
 
 
@@ -234,3 +244,37 @@ func wants_break_hint() -> bool:
 		_continuous_work = 0.0
 		return true
 	return false
+
+
+const MEET_PROCS := ["zoom", "teams", "ms-teams", "webex", "ciscocollabhost", "gotomeeting", "skype"]
+const MEET_TITLES := ["réunion", "reunion", "meeting", "meet -", "meet –", "appel", "visio", "huddle", "conférence", "call"]
+## Jeux competitifs : il se cache completement (anti-triche, concentration).
+const COMPETITIVE := ["valorant", "valorant-win64-shipping", "cs2", "league of legends", "overwatch", "r5apex",
+	"fortniteclient-win64-shipping", "dota2", "rainbowsix", "rainbowsix_be", "pubg", "tslgame", "eft", "escapefromtarkov",
+	"rocketleague", "marvelrivals", "deadlock"]
+
+
+func _is_meeting() -> bool:
+	var t := window_title.to_lower()
+	if MEET_PROCS.has(proc_name):
+		return true
+	if proc_name == "discord" and (t.contains("appel") or t.contains("call") or t.contains("vocal")):
+		return true
+	if BROWSERS.has(proc_name) and (t.contains("meet.google") or t.begins_with("meet -") or t.begins_with("meet –")):
+		return true
+	if meet_app_running:
+		for k in MEET_TITLES:
+			if t.contains(k):
+				return true
+	return false
+
+
+func is_competitive() -> bool:
+	return category == "game" and COMPETITIVE.has(proc_name)
+
+
+static func _game_label(title: String, proc: String) -> String:
+	var t := title.strip_edges()
+	if t == "" or t.length() > 40:
+		t = proc
+	return t.capitalize() if t == proc else t

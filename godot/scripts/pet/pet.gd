@@ -616,6 +616,9 @@ func show_prop(id: String) -> void:
 			p.rotation.x = 0.9
 		"mug":
 			p.position = Vector3(-width * 0.5 - 0.12, 0.0, 0.15)
+		"popcorn":
+			p.position = Vector3(-width * 0.5 - 0.06, 0.0, 0.12)
+			p.scale = Vector3.ONE * 1.25
 		"phone":
 			# tenu devant lui, ecran tourne vers lui : on voit la coque et la camera
 			p.position = Vector3(0.1, height * 0.3, float(anchors.get("depth", 1.0)) * 0.5 + 0.1)
@@ -989,15 +992,47 @@ func act_typing(dur := 20.0) -> void:
 
 
 ## Joue a la manette pendant `dur` secondes.
+## Si une vraie manette est branchee, il IMITE le joueur (facon Bongo Cat) : il se penche avec le stick
+## et sursaute a chaque bouton.
+const MIRROR_BUTTONS := [JOY_BUTTON_A, JOY_BUTTON_B, JOY_BUTTON_X, JOY_BUTTON_Y,
+	JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_RIGHT_SHOULDER, JOY_BUTTON_DPAD_UP, JOY_BUTTON_DPAD_DOWN,
+	JOY_BUTTON_DPAD_LEFT, JOY_BUTTON_DPAD_RIGHT]
+var _mirror_presses := 0.0
+
+
 func act_gaming(dur := 20.0) -> void:
 	var id: int = await _begin()
 	show_prop("gamepad")
 	set_base_expression("focused")
 	look = Vector2(0.0, -0.7)
 	var end_time := Time.get_ticks_msec() + int(dur * 1000.0)
+	var was_down := {}
 	while Time.get_ticks_msec() < end_time:
 		if id != _act:
 			return
+		var pads := Input.get_connected_joypads()
+		if not pads.is_empty():
+			# miroir de la vraie manette
+			var j: int = pads[0]
+			var lx := Input.get_joy_axis(j, JOY_AXIS_LEFT_X)
+			var ly := Input.get_joy_axis(j, JOY_AXIS_LEFT_Y)
+			var rt := Input.get_joy_axis(j, JOY_AXIS_TRIGGER_RIGHT)
+			lean = lerpf(lean, -lx * 0.28, 0.35)
+			pitch = lerpf(pitch, ly * 0.12, 0.35)
+			var pressed := false
+			for b in MIRROR_BUTTONS:
+				var down := Input.is_joy_button_pressed(j, b)
+				if down and not was_down.get(b, false):
+					pressed = true
+				was_down[b] = down
+			if pressed or rt > 0.6:
+				_sq_v -= 0.9
+				_mirror_presses += 1.0
+				if _mirror_presses > 25.0 and randf() < 0.05:
+					emote.emit("sweat", 1)  # tu spammes !
+			_mirror_presses = maxf(0.0, _mirror_presses - 0.04)
+			await get_tree().process_frame
+			continue
 		var t := _tw()
 		if randf() < 0.15:
 			set_expression("happy", 1.0)
@@ -1102,6 +1137,39 @@ func act_eat(pref := 0) -> void:
 			emote.emit("sweat", 1)
 		_:
 			set_expression("happy", 1.0)
+	_end(id)
+
+
+## Regarde une video avec du pop-corn, tourne vers l'ecran (dos a toi).
+func act_popcorn(dur := 25.0) -> void:
+	var id: int = await _begin()
+	show_prop("popcorn")
+	var t0 := _tw()
+	t0.tween_property(self, "yaw", PI * 0.82, 0.6).set_trans(Tween.TRANS_SINE)
+	await t0.finished
+	set_base_expression("happy")
+	var end_time := Time.get_ticks_msec() + int(dur * 1000.0)
+	while Time.get_ticks_msec() < end_time:
+		if id != _act:
+			return
+		await _wait(randf_range(1.4, 3.0))
+		if id != _act:
+			return
+		# il pioche et croque
+		var t := _tw()
+		t.tween_property(self, "pitch", 0.14, 0.15)
+		t.tween_property(self, "pitch", -0.04, 0.15)
+		t.tween_property(self, "squash", -0.06, 0.08)
+		t.tween_property(self, "squash", 0.0, 0.12)
+		t.tween_property(self, "pitch", 0.0, 0.2)
+		await t.finished
+		if randf() < 0.12:
+			emote.emit("sparkle", 1)
+	set_base_expression("neutral")
+	hide_prop("popcorn")
+	var t1 := _tw()
+	t1.tween_property(self, "yaw", 0.0, 0.5)
+	await t1.finished
 	_end(id)
 
 

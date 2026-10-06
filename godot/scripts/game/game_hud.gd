@@ -14,6 +14,8 @@ var _banner := ""
 var _banner_sub := ""
 var _banner_t := 0.0
 var _bounds := Rect2()
+var mail_count := 0  # enveloppe sur sa tete (boite aux lettres)
+var _mail_t := 0.0
 
 const NEED_COLORS := {
 	"faim": Color("ff8a5c"), "fun": Color("ffcf3f"), "energie": Color("8e7dff"),
@@ -57,7 +59,7 @@ func banner(title: String, sub := "", dur := 3.5) -> void:
 
 
 func is_busy() -> bool:
-	return not _foods.is_empty() or _needs_alpha > 0.01 or _banner_t > 0.0
+	return not _foods.is_empty() or _needs_alpha > 0.01 or _banner_t > 0.0 or mail_count > 0
 
 
 func bounds() -> Rect2:
@@ -73,6 +75,7 @@ func _process(delta: float) -> void:
 	_foods = _foods.filter(func(f): return f["t"] < f["dur"])
 	_needs_alpha = move_toward(_needs_alpha, _needs_target, delta * 4.0)
 	_banner_t = maxf(0.0, _banner_t - delta)
+	_mail_t += delta
 	queue_redraw()
 
 
@@ -141,6 +144,24 @@ func _draw() -> void:
 				HORIZONTAL_ALIGNMENT_LEFT, -1, int(12 * s), Color(1, 1, 1, 0.92 * a))
 		bmin = bmin.min(r.position - Vector2(10, 10))
 		bmax = bmax.max(r.end + Vector2(10, 10))
+	# enveloppe (messages mis de cote pendant le jeu / la visio)
+	if mail_count > 0:
+		var hp := head_pos() + Vector2(0, -16.0 * s + sin(_mail_t * 3.0) * 3.0 * s)
+		var ew := 30.0 * s
+		var eh := 20.0 * s
+		var er := Rect2(hp - Vector2(ew * 0.5, eh), Vector2(ew, eh))
+		var eb := UITheme.box(Color(1, 1, 1), int(4 * s), UITheme.ACCENT, int(2 * s), 0)
+		eb.shadow_color = Color(0, 0, 0, 0.15)
+		eb.shadow_size = int(3 * s)
+		draw_style_box(eb, er)
+		draw_polyline(PackedVector2Array([er.position, er.position + Vector2(ew * 0.5, eh * 0.55), Vector2(er.end.x, er.position.y)]),
+			UITheme.ACCENT, maxf(1.5, 2.0 * s), true)
+		draw_circle(er.position + Vector2(ew * 0.5, eh * 0.55), 3.2 * s, UITheme.ACCENT_DARK)
+		var bc := Vector2(er.end.x, er.position.y)
+		draw_circle(bc, 8.0 * s, UITheme.ACCENT_DARK)
+		draw_string(UITheme.font(650), bc + Vector2(-4.0 * s, 4.5 * s), str(mail_count), HORIZONTAL_ALIGNMENT_LEFT, -1, int(11 * s), Color.WHITE)
+		bmin = bmin.min(er.position - Vector2(10, 12) * s)
+		bmax = bmax.max(er.end + Vector2(12, 4) * s)
 	_bounds = Rect2(bmin, bmax - bmin) if bmin.x < INF else Rect2()
 
 

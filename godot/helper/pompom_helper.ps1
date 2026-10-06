@@ -99,6 +99,10 @@ public static class PW {
 if ($Hwnd -ne 0) { [PW]::MakeToolWindow([IntPtr]$Hwnd) }
 $pathCache = @{}
 $tick = 0
+$meetRun = $false
+$recRun = $false
+$meetNames = @('Zoom', 'Teams', 'ms-teams', 'webex', 'CiscoCollabHost', 'GoToMeeting', 'Skype')
+$recNames = @('obs64', 'obs32', 'obs', 'XSplit.Core', 'Streamlabs OBS', 'Streamlabs Desktop', 'Twitch Studio')
 while ($true) {
   try {
     if ($ParentPid -ne 0 -and -not (Get-Process -Id $ParentPid -ErrorAction SilentlyContinue)) { break }
@@ -123,6 +127,8 @@ while ($true) {
       fs    = [PW]::IsFullscreen($fg)
       self  = ($fpid -eq $ParentPid)
       fg    = $fg.ToInt64()
+      meet  = $meetRun
+      rec   = $recRun
     }
     $json = ($o | ConvertTo-Json -Compress)
     $json = $json.Substring(0, $json.Length - 1) + ',"wins":' + [PW]::Windows([uint32]$ParentPid) + '}'
@@ -130,6 +136,10 @@ while ($true) {
     [Console]::Out.Flush()
     if ($Hwnd -ne 0) { [PW]::KeepTop([IntPtr]$Hwnd) }
     $tick++
+    if ($tick % 8 -eq 1) {
+      $meetRun = [bool](Get-Process -Name $meetNames -ErrorAction SilentlyContinue)
+      $recRun = [bool](Get-Process -Name $recNames -ErrorAction SilentlyContinue)
+    }
     if ($tick % 2400 -eq 0) { $pathCache.Clear() }
   } catch { }
   Start-Sleep -Milliseconds 250

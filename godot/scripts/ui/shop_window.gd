@@ -1940,6 +1940,7 @@ func _build_settings_page() -> Control:
 
 	var g2 := _group(col, "Comportement", "heart", "", UITheme.LAVENDER)
 	_setting_row(g2, "Se promener", "Il se balade tout seul sur la barre des tâches.", _toggle_setting("wander"))
+	_setting_row(g2, "Se cacher dans les jeux compétitifs", "Valorant, CS2, LoL… : il disparaît complètement pendant la partie et revient après.", _toggle_setting("competitive_hide"))
 	_setting_row(g2, "Discret", "Il se pousse quand ta souris travaille juste à côté.", _toggle_setting("discreet"))
 	_setting_row(g2, "Parler", "Il s'exprime avec de petites bulles.", _toggle_setting("talk"))
 	_setting_row(g2, "Se cacher en plein écran", "Sinon, il te regarde discrètement depuis le bord de l'écran.", _toggle_setting("hide_fullscreen"))
@@ -2018,7 +2019,7 @@ func _option_index(key: String) -> int:
 
 ## Valeurs par defaut des reglages qui peuvent manquer dans une vieille sauvegarde.
 const SETTING_DEFAULTS := {"eat_files": true, "clipboard": false, "suggestions": false, "ai_gpu": true,
-	"screenshots": true, "share_visible": true, "auto_update": true}
+	"screenshots": true, "share_visible": true, "auto_update": true, "competitive_hide": true}
 
 
 static func setting_on(key: String) -> bool:

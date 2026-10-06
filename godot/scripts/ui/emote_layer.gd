@@ -34,7 +34,15 @@ func head_pos() -> Vector2:
 	return stage.camera.unproject_position(stage.pet.head_top_global()) - Vector2(0, bubble_lift)
 
 
+## Boite aux lettres : si `say_filter` renvoie true, la bulle est mise de cote au lieu d'etre affichee.
+var say_filter: Callable
+## En visio : aucune emotion animee.
+var mute_emotes := false
+
+
 func emit_emote(kind: String, count := 1) -> void:
+	if mute_emotes:
+		return
 	var s := stage.ppu / 100.0 if stage else 1.0
 	for i in count:
 		var p := {
@@ -60,6 +68,8 @@ func emit_emote(kind: String, count := 1) -> void:
 
 
 func say(text: String, duration := 3.2) -> void:
+	if say_filter.is_valid() and bool(say_filter.call(text)):
+		return
 	if not talk_enabled or text == "":
 		return
 	_bubble_text = text

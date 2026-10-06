@@ -565,6 +565,32 @@ prim("cyl", "glass", e, loc=(-0.032, 0.0115, 0.09), rot=(math.pi / 2, 0, 0), rad
 for z in (0.05, 0.02):
     prim("cube", "accent", e, loc=(0.064, 0, z), scale=(0.003, 0.004, 0.012), bevel=0.002)
 
+# pot de pop-corn : seau raye rouge et blanc + grains qui depassent
+e = empty("popcorn")
+props.append(e)
+bpy.ops.mesh.primitive_cone_add(vertices=48, radius1=0.075, radius2=0.1, depth=0.17, location=(0, 0, 0.085), end_fill_type="NGON")
+o = bpy.context.active_object
+bm = bmesh.new()
+bm.from_mesh(o.data)
+bmesh.ops.delete(bm, geom=[f for f in bm.faces if f.normal.z > 0.9], context="FACES")
+bm.to_mesh(o.data)
+bm.free()
+s = o.modifiers.new("Solid", "SOLIDIFY")
+s.thickness = 0.006
+finish(o, "white", e, bevel=0.003)
+for k in range(8):
+    a = 2 * math.pi * k / 8
+    stripe = prim("cube", "accent", e, loc=(math.cos(a) * 0.088, math.sin(a) * 0.088, 0.085),
+                  rot=(0, math.radians(8.5), a), scale=(0.004, 0.017, 0.086), bevel=0.002)
+import random
+random.seed(7)
+for k in range(26):
+    a = random.uniform(0, 2 * math.pi)
+    r = random.uniform(0, 0.08)
+    z = 0.17 + random.uniform(-0.01, 0.045) * (1 - r / 0.1)
+    prim("ico", "white" if k % 5 else "gold", e, loc=(math.cos(a) * r, math.sin(a) * r, z), radius=random.uniform(0.016, 0.024),
+         subdivisions=2, scale=(1, random.uniform(0.8, 1.2), random.uniform(0.75, 1.0)))
+
 export(os.path.join(OUT_MODELS, "props.glb"), props)
 
 # ---------------------------------------------------------------------------

@@ -3,6 +3,29 @@
 Toutes les versions de Pompom. Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/)
 et les numéros suivent [SemVer](https://semver.org/lang/fr/).
 
+## [0.2.0-beta] - 2026-10-06
+
+### Il ne gêne plus jamais (en jeu, en visio)
+- **Boîte aux lettres** : en jeu, en visio ou quand OBS tourne, il ne parle plus. Ses messages s'accumulent dans une enveloppe sur sa tête, livrée quand tu reviens. Clique-le pour la lire.
+- **Récap de partie** : après plus de 20 min de jeu, il t'attend avec un petit ticket (« Session de Hades : 1 h 12 · +80 pièces. GG ! »).
+- **Placement en jeu plein écran** :
+  1. Sur ton deuxième écran s'il y en a un.
+  2. Sinon, à la place où tu l'as posé une fois pour ce jeu : il la retient.
+  3. Sinon, en **périscope** : tout petit en bas de l'écran, seuls ses oreilles et ses yeux dépassent.
+  - Il plonge hors de vue dès que ta souris approche.
+- **Jeux compétitifs** (Valorant, CS2, LoL, Overwatch…) : il se cache complètement, puis revient avec un « GG ? ».
+- **Visio** (Teams, Zoom, Meet, appel Discord) : il se fait tout petit dans le coin, sans bulle ni animation.
+
+### Il joue avec toi
+- **Manette miroir** : si une manette est branchée, sa petite manette imite la tienne. Il se penche avec ton stick, sursaute à chaque bouton et transpire si tu enchaînes.
+- **Pop-corn** : devant une vidéo (YouTube, Netflix, Twitch…), il se tourne vers l'écran, dos à toi, et grignote.
+
+### Physique des fenêtres
+- **Fenêtre fermée** : il reste suspendu en l'air une demi-seconde, comme dans un dessin animé, puis tombe.
+- **Fenêtre secouée** : il a le vertige puis est éjecté. La slime, elle, reste collée.
+- **Fenêtre maximisée** : « Ascenseur ! ». Il est propulsé vers le haut, se cogne au plafond et retombe.
+- **Fenêtre rétrécie sous lui** : le bord le pousse.
+
 ## [0.1.1-beta] - 2026-10-06
 
 ### Nouveau
