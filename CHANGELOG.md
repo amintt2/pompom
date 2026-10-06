@@ -3,6 +3,22 @@
 Toutes les versions de Pompom. Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/)
 et les numéros suivent [SemVer](https://semver.org/lang/fr/).
 
+## [0.4.0-beta] - 2026-10-06
+
+### Il fait comme toi (48 situations)
+- Il imite ce que tu fais, selon l'appli ou le site au premier plan :
+  - **mails** : il lit une lettre en suivant ton curseur ;
+  - **code** : ordinateur et lunettes ; **Claude Code** : ordinateur, café et bulle de réflexion ;
+  - **Excel** : calculatrice ; **design** : béret et palette ; **3D** : petit cube ;
+  - **musique** : casque et il bouge en rythme ; **Discord** : il tape sur son téléphone ;
+  - **lecture** : livre ; **shopping**, **météo**, **échecs**, **films** (pop-corn)…
+- 34 nouveaux objets modélisés (lettre, livre, clavier, calculatrice, palette, cube 3D, sablier, échiquier…).
+- Discret sur les pages privées (gestionnaires de mots de passe, connexion) : il détourne le regard.
+
+### Joue avec moi !
+- Nouveau menu **« Jouer avec moi »** (clic droit) : **Puissance 4**, **Snake duel** et **Morpion** contre lui, en 3 niveaux.
+- Il réfléchit, te taquine et réagit aussi sur le bureau. Des pièces et de l'XP à gagner, et une nouvelle quête.
+
 ## [0.3.0-beta] - 2026-10-06
 
 ### Il vit tes parties avec toi

@@ -330,6 +330,7 @@ const QUEST_POOL := [
 	{"id": "poke10", "kind": "poke", "goal": 10, "text": "Fais coucou à %s 10 fois (clic)", "coins": 20, "xp": 25},
 	{"id": "outfit", "kind": "outfit", "goal": 1, "text": "Change la tenue de %s", "coins": 25, "xp": 30},
 	{"id": "climb", "kind": "climb", "goal": 2, "text": "%s doit grimper 2 fois sur une fenêtre", "coins": 30, "xp": 35},
+	{"id": "minigame2", "kind": "minigame", "goal": 2, "text": "Fais 2 parties de mini-jeu contre %s", "coins": 35, "xp": 40},
 ]
 
 

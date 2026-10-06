@@ -69,6 +69,14 @@ travaille avec toi, joue avec toi… et mange tes vieux fichiers.
 |---|---|---|
 | ![Boutique](docs/images/boutique.png) | ![Quêtes](docs/images/quetes.png) | ![Menu](docs/images/menu.png) |
 
+### Il fait comme toi
+- **48 situations** : il lit une lettre quand tu lis tes mails (et suit ton curseur), se met à son ordinateur quand tu codes ou que tu utilises Claude Code, met son casque quand tu écoutes de la musique, sort sa calculatrice sur Excel, son béret sur Figma…
+- La liste est dans [godot/data/situations.json](godot/data/situations.json), facile à compléter.
+
+### Mini-jeux contre lui
+- Clic droit → **Jouer avec moi** : **Puissance 4**, **Snake duel** et **Morpion**, en Facile / Moyen / Difficile.
+- Son « cerveau » de joueur : des algorithmes classiques (recherche minimax alpha-bêta, parcours en largeur), instantanés et sans aucun modèle à télécharger.
+
 ### Il joue avec toi
 - **Il fête tes exploits** : buts, éliminations, multi-kills, victoires. Il boude un peu quand tu meurs ou quand l'adversaire marque.
   - **Rocket League** : via la Stats API officielle (il te propose de l'activer, avec ton accord). Il ne fête que les buts de **ton** équipe.

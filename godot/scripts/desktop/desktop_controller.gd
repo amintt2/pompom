@@ -73,6 +73,7 @@ var perf_locked := false  # --bench
 var _mouse_dist := INF
 var _cap_interval := 0.15
 var games: GameEvents
+var situations: PetSituations
 var _game_react_cd := 0.0
 var _pending_setups: Array = []
 var _setup_dialog: ConfirmationDialog
@@ -132,6 +133,13 @@ func setup(p_stage: PetStage, p_emotes: EmoteLayer) -> void:
 		emotes.say(text_fr + " (clique-moi)", 5.0)
 		pet.act_hop(1, 0.1))
 	suggest.setup()
+	situations = PetSituations.new()
+	situations.name = "Situations"
+	add_child(situations)
+	situations.setup(pet, stage)
+	situations.say_callback = func(t: String): _say(t)
+	situations.follow_activity = true
+	situations.can_switch = func(_sid: String) -> bool: return mode in ["normal", "video"] and state == "ground"
 	updater = Updater.new()
 	updater.name = "Updater"
 	add_child(updater)
@@ -645,7 +653,8 @@ func _update_perf(delta: float) -> void:
 	if perf_locked:
 		return
 	_perf_t -= delta
-	var busy_ui := (_shop != null and is_instance_valid(_shop) and _shop.visible) or PetMenu.current() != null
+	var busy_ui := (_shop != null and is_instance_valid(_shop) and _shop.visible) or PetMenu.current() != null \
+		or MiniGames.current() != null
 	var active := busy_ui or state in ["drag", "fall"] or _mouse_dist < _pet_px() * 2.0
 	if _perf_t > 0.0 and not (active and Engine.max_fps != _perf_fps_full()):
 		return
@@ -986,25 +995,14 @@ func _brain(delta: float) -> void:
 			pet.act_sad()
 			return
 	var r := randf()
-	if Activity.is_active():
-		match Activity.category:
-			"work":
-				if r < 0.4:
-					pet.act_typing(randf_range(20.0, 45.0))
-					if randf() < 0.15:
-						_say(Data.line("work"))
-					return
-			"game":
-				if not Input.get_connected_joypads().is_empty() or r < 0.4:
-					pet.act_gaming(randf_range(30.0, 60.0))  # manette miroir si une manette est branchee
-					return
-			"media":
-				if r < 0.3:
-					pet.act_dance(4.0)
-					return
-	if mode == "video" and r < 0.7:
-		pet.act_popcorn(randf_range(30.0, 60.0))
-		return
+	# il imite ce que tu fais (mails, code, Claude Code, musique, Excel, lecture... voir data/situations.json)
+	if Activity.is_active() or mode == "video":
+		var sid := PetSituations.situation_for_activity()
+		if sid == "gaming" and Input.get_connected_joypads().is_empty() and r > 0.4:
+			sid = ""
+		if sid != "" and sid != "afk" and mode in ["normal", "video", "game"] and r < 0.85:
+			if situations.play(sid, randf_range(30.0, 60.0)):
+				return
 	var choices := {"look": 3.0, "hop": 1.5, "wiggle": 1.5, "stretch": 1.0}
 	if Activity.category in ["browse", "media", "other"] or (Activity.available and Activity.idle_sec > 30.0):
 		choices["phone"] = 2.0
@@ -1139,7 +1137,8 @@ func _update_mode() -> void:
 			_enter_meeting()
 		"video":
 			if state == "ground" and not pet.busy and not pet.sleeping:
-				pet.act_popcorn(randf_range(30.0, 60.0))
+				if not situations.play(PetSituations.situation_for_activity(), 45.0):
+					pet.act_popcorn(randf_range(30.0, 60.0))
 		"game":
 			if state == "ground" and not pet.busy and not Input.get_connected_joypads().is_empty():
 				pet.act_gaming(60.0)
@@ -1562,6 +1561,7 @@ func _menu_items() -> Array:
 	var items: Array = PetMenu.default_items(pet.sleeping)
 	var extra := [
 		{"id": 10, "label": "Danser", "icon": "sparkle", "tint": UITheme.PEACH},
+		{"id": 14, "label": "Jouer avec moi", "icon": "gamepad", "tint": UITheme.SKY, "hint": "Puissance 4, Snake…"},
 		{"id": 11, "label": "Changer de compagnon", "icon": "body", "tint": UITheme.LAVENDER},
 	]
 	var at := items.size()
@@ -1629,6 +1629,7 @@ func _on_menu(id: int) -> void:
 		11: open_shop("look")
 		12: updater.install()
 		13: check_updates_now()
+		14: open_minigames()
 		9: quit()
 
 
@@ -1638,6 +1639,43 @@ func open_shop(tab := "head") -> void:
 		_shop.keep_alive = true
 		add_child(_shop)
 	_shop.call("open", tab)
+
+
+## Mini-jeux contre lui (Puissance 4, Snake duel, Morpion) : il reagit aussi sur le bureau.
+func open_minigames(game_id := "") -> void:
+	var already := MiniGames.current() != null
+	var w := MiniGames.open(stage, emotes, self, game_id)
+	if already or w == null:
+		return
+	pet.set_base_expression("focused")
+	w.connect("pompom_reaction", _on_minigame_reaction)
+	w.connect("game_result", func(info: Dictionary):
+		GameState.quest_event("minigame")
+		if str(info.get("result", "")) == "win":
+			GameState.change_happiness(2.0))
+	w.connect("closed", func():
+		pet.set_base_expression("neutral")
+		if state in ["ground", "walk"]:
+			pet.act_hop(1, 0.1))
+
+
+func _on_minigame_reaction(kind: String, _text: String) -> void:
+	if state != "ground" and state != "walk":
+		return
+	match kind:
+		"pompom_wins":
+			pet.act_dance(2.5)
+		"user_wins":
+			pet.act_surprised()
+			emotes.emit_emote("sparkle", 3)
+		"draw":
+			pet.act_nod()
+		"worried", "behind":
+			if not pet.busy:
+				pet.act_meh()
+		"sure_win", "lead":
+			if not pet.busy:
+				pet.act_hop(1, 0.08)
 
 
 ## Prepare le menu et la boutique en coulisse : clic droit et double-clic deviennent instantanes.
@@ -1651,6 +1689,7 @@ func _prewarm_ui() -> void:
 
 
 func quit() -> void:
+	PetSituations.free_cache()
 	GameState.save_game()
 	Activity.stop()
 	get_tree().quit()

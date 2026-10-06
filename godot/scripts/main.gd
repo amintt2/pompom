@@ -73,6 +73,21 @@ func _debug_overrides(args: PackedStringArray) -> void:
 		_feed_test()
 	if args.has("--modes-test"):
 		_modes_test()
+	if args.has("--minigames"):
+		get_tree().create_timer(2.5).timeout.connect(func(): get_node("Desktop").open_minigames("connect4"))
+		get_tree().create_timer(5.0).timeout.connect(func():
+			var wins: Array = [get_window()]
+			wins.append_array(get_tree().root.find_children("*", "Window", true, false))
+			for w in wins:
+				print("WIN %s title=%s pos=%s size=%s borderless=%s transparent=%s visible=%s" % [w.get_class(), w.title,
+					w.position, w.size, w.borderless, w.transparent, w.visible])
+			var mg := MiniGames.current()
+			if mg:
+				mg.get_texture().get_image().save_png(ProjectSettings.globalize_path("user://minigames_inapp.png"))
+			if OS.get_cmdline_user_args().has("--quit-after-snap"):
+				get_tree().quit())
+	if args.has("--situations-brain-test"):
+		_situations_brain_test()
 	if args.has("--game-events-test"):
 		_game_events_test()
 	if args.has("--plat-test"):
@@ -137,6 +152,54 @@ func _bench(secs: float) -> void:
 			slow += 1
 	print("BENCH frames>8.3ms (sous 120 fps) = %d" % slow)
 	Prof.report()
+	get_tree().quit()
+
+
+## Test : le cerveau du compagnon choisit la bonne situation selon l'appli au premier plan.
+func _situations_brain_test() -> void:
+	await get_tree().create_timer(3.0).timeout
+	var dc := get_node_or_null("Desktop")
+	Activity.set_process(false)
+	Activity.available = true
+	var ok := 0
+	var ko := 0
+	var frames: Array[Image] = []
+	for c in [["code", "main.gd - Pompom - Visual Studio Code", "work", "coding"],
+			["windowsterminal", "✳ claude", "work", "ai_agent"],
+			["olk", "Boîte de réception - Outlook", "work", "email_read"],
+			["spotify", "Spotify Premium", "media", "music_listen"]]:
+		Activity.proc_name = c[0]
+		Activity.window_title = c[1]
+		Activity.category = c[2]
+		Activity.idle_sec = 1.0
+		dc.situations.stop()
+		stage.pet.stop_action()
+		await get_tree().create_timer(0.5).timeout
+		var played := false
+		for i in 12:  # le cerveau tire au sort : on lui laisse quelques essais
+			dc._think = 0.0
+			dc._brain(0.1)
+			if dc.situations.is_playing():
+				played = true
+				break
+			stage.pet.stop_action()
+			await get_tree().process_frame
+		await get_tree().create_timer(1.6).timeout
+		frames.append(get_viewport().get_texture().get_image())
+		print("SITBRAIN %s -> %s (attendu %s)" % [c[0], dc.situations.current, c[3]])
+		if played and dc.situations.current == c[3]:
+			ok += 1
+		else:
+			ko += 1
+	var w := frames[0].get_width()
+	var h := frames[0].get_height()
+	var sheet := Image.create(w * frames.size(), h, false, Image.FORMAT_RGBA8)
+	sheet.fill(Color(0.16, 0.16, 0.19))
+	for i in frames.size():
+		frames[i].convert(Image.FORMAT_RGBA8)
+		sheet.blend_rect(frames[i], Rect2i(0, 0, w, h), Vector2i(i * w, 0))
+	sheet.save_png(ProjectSettings.globalize_path("user://situations_brain.png"))
+	print("SITBRAIN TEST: %d ok, %d ko" % [ok, ko])
 	get_tree().quit()
 
 
