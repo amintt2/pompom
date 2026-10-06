@@ -3,6 +3,15 @@
 Toutes les versions de Pompom. Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/)
 et les numéros suivent [SemVer](https://semver.org/lang/fr/).
 
+## [0.4.1-beta] - 2026-10-06
+
+### Mini-jeux : le vrai compagnon dans la partie
+- Quand tu ouvres « Jouer avec moi », il **saute dans la fenêtre du jeu** et s'assoit dans sa carte (le vrai compagnon 3D, à la place du dessin). Il suit la fenêtre si tu la déplaces.
+- Si tu passes à une autre fenêtre, il redescend sur la barre des tâches, puis revient dès que tu retournes au jeu.
+
+### Corrigé
+- Un léger rectangle gris pouvait apparaître sous lui sur les fonds clairs (ombre de contact mal estompée sur les bords).
+
 ## [0.4.0-beta] - 2026-10-06
 
 ### Il fait comme toi (48 situations)

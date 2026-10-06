@@ -130,6 +130,21 @@ func open(first_game := "connect4") -> void:
 	grab_focus()
 
 
+## Scene du compagnon dans la carte, en pixels ecran : {rect, floor} (vide si pas encore construite).
+func avatar_screen_info() -> Dictionary:
+	if avatar == null or not is_instance_valid(avatar) or not visible or mode == MODE_MINIMIZED:
+		return {}
+	var r := avatar.get_global_rect()
+	var origin := Vector2(position)
+	return {"rect": Rect2(origin + r.position * _f, r.size * _f), "floor": origin + (r.position + avatar.floor_point()) * _f}
+
+
+## true : le vrai compagnon (3D) vient s'asseoir dans la carte a la place du dessin.
+func set_external_avatar(on: bool) -> void:
+	if avatar:
+		avatar.external = on
+
+
 func close_window() -> void:
 	if _closing:
 		return

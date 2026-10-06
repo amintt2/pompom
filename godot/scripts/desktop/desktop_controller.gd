@@ -74,6 +74,9 @@ var _mouse_dist := INF
 var _cap_interval := 0.15
 var games: GameEvents
 var situations: PetSituations
+var _guest_win: Window  # fenetre de mini-jeu ou il est assis
+var _guest_away := 0.0
+var _guest_cd := 0.0
 var _game_react_cd := 0.0
 var _pending_setups: Array = []
 var _setup_dialog: ConfirmationDialog
@@ -479,6 +482,8 @@ func _process(delta: float) -> void:
 			_process_peek(dist, delta)
 		"spot":
 			_process_spot(dist, delta)
+		"guest":
+			_process_guest()
 		"hang":
 			_hang_t -= delta
 			if _hang_t <= 0.0:
@@ -599,6 +604,11 @@ func _on_game_changed(_proc: String, genre: String) -> void:
 
 func _game_tick(delta: float) -> void:
 	_game_react_cd = maxf(0.0, _game_react_cd - delta)
+	# retour dans la fenetre du mini-jeu quand elle repasse au premier plan
+	_guest_cd = maxf(0.0, _guest_cd - delta)
+	if is_instance_valid(_guest_win) and _guest_cd <= 0.0 and state in ["ground", "walk"] and _guest_win.has_focus():
+		_guest_cd = 2.0
+		_enter_guest(_guest_win)
 	if _thinking_game and state in ["ground", "walk", "spot", "peek"] and not pet.busy and not pet.sleeping:
 		_think_t -= delta
 		if _think_t <= 0.0:
@@ -719,12 +729,17 @@ func _input(event: InputEvent) -> void:
 			PetMenu.open_at(DisplayServer.mouse_get_position(), _menu_items(), _on_menu, self)
 	elif event is InputEventMouseMotion and _press and state != "drag":
 		var mouse2 := Vector2(DisplayServer.mouse_get_position())
-		if mouse2.distance_to(_press_mouse) > 6.0 * s and state in ["ground", "walk", "fall", "peek", "spot", "hang"]:
+		if mouse2.distance_to(_press_mouse) > 6.0 * s and state in ["ground", "walk", "fall", "peek", "spot", "hang", "guest"]:
 			_start_drag()
 
 
 # =========================================================================== porter / lancer
 func _start_drag() -> void:
+	if is_instance_valid(_guest_win):
+		# on le sort du jeu : le dessin reprend sa place dans la carte
+		_guest_win.call("set_external_avatar", false)
+		_guest_win = null
+		_pet_scale_target = 1.0
 	state = "drag"
 	pet.airborne = true
 	_stop_move()
@@ -1648,6 +1663,7 @@ func open_minigames(game_id := "") -> void:
 	if already or w == null:
 		return
 	pet.set_base_expression("focused")
+	_enter_guest(w)
 	w.connect("pompom_reaction", _on_minigame_reaction)
 	w.connect("game_result", func(info: Dictionary):
 		GameState.quest_event("minigame")
@@ -1655,12 +1671,13 @@ func open_minigames(game_id := "") -> void:
 			GameState.change_happiness(2.0))
 	w.connect("closed", func():
 		pet.set_base_expression("neutral")
+		_exit_guest()
 		if state in ["ground", "walk"]:
 			pet.act_hop(1, 0.1))
 
 
 func _on_minigame_reaction(kind: String, _text: String) -> void:
-	if state != "ground" and state != "walk":
+	if state not in ["ground", "walk", "guest"]:
 		return
 	match kind:
 		"pompom_wins":
@@ -1676,6 +1693,101 @@ func _on_minigame_reaction(kind: String, _text: String) -> void:
 		"sure_win", "lead":
 			if not pet.busy:
 				pet.act_hop(1, 0.08)
+
+
+## Il saute dans la fenetre du mini-jeu et s'assoit dans sa carte (a la place du dessin 2D).
+func _enter_guest(w: Window) -> void:
+	_guest_win = w
+	_guest_away = 0.0
+	for _i in 3:
+		await get_tree().process_frame  # mise en page de la fenetre
+	if not is_instance_valid(w) or state not in ["ground", "walk", "fall", "spot", "peek"]:
+		return
+	var info: Dictionary = w.call("avatar_screen_info")
+	if info.is_empty():
+		return
+	_stop_move()
+	pet.stop_action()
+	if situations:
+		situations.stop()
+	w.call("set_external_avatar", true)
+	var start := pos
+	var crouch := create_tween()
+	crouch.tween_property(pet, "squash", -0.2, 0.16)
+	await crouch.finished
+	state = "guest_jump"
+	pet.airborne = true
+	pet.squash = 0.15
+	_pet_scale_target = _guest_scale(info)
+	var dur := clampf(start.distance_to(_guest_pos(info)) / (1400.0 * s), 0.45, 0.9)
+	var arc := maxf(120.0 * s, absf(start.y - _guest_pos(info).y) * 0.3 + 90.0 * s)
+	var dirx := signf(_guest_pos(info).x - start.x)
+	var tw := create_tween()
+	tw.tween_method(func(t: float):
+		var end := start
+		if is_instance_valid(w):
+			var inf2: Dictionary = w.call("avatar_screen_info")
+			if not inf2.is_empty():
+				end = _guest_pos(inf2)
+		pos = start.lerp(end, t) + Vector2(0, -arc * 4.0 * t * (1.0 - t))
+		pet.yaw = dirx * 0.6 * sin(t * PI), 0.0, 1.0, dur)
+	tw.parallel().tween_property(pet, "squash", 0.0, dur * 0.5)
+	await tw.finished
+	if state != "guest_jump":
+		return
+	state = "guest"
+	pet.yaw = 0.0
+	pet.airborne = false
+	pet.land(2.4)
+	emotes.emit_emote("sparkle", 2)
+
+
+## Position de la fenetre du compagnon pour que ses pieds soient au sol de la carte.
+func _guest_pos(info: Dictionary) -> Vector2:
+	var f: Vector2 = info["floor"]
+	return Vector2(f.x - W * 0.5, f.y - (H - margin))
+
+
+func _guest_scale(info: Dictionary) -> float:
+	var r: Rect2 = info["rect"]
+	return clampf(minf(r.size.y * 0.62, r.size.x * 0.5) / maxf(_pet_px(), 1.0), 0.35, 1.0)
+
+
+func _process_guest() -> void:
+	if not is_instance_valid(_guest_win):
+		_exit_guest()
+		return
+	var info: Dictionary = _guest_win.call("avatar_screen_info")
+	if info.is_empty():
+		_exit_guest()  # fenetre reduite : il redescend
+		return
+	# une autre fenetre passe devant le jeu : il redescend (et revient quand tu reviens au jeu)
+	if _guest_win.has_focus() or PetMenu.current() != null:
+		_guest_away = 0.0
+	else:
+		_guest_away += get_process_delta_time()
+		if _guest_away > 1.5:
+			_exit_guest(false)
+			return
+	pos = _guest_pos(info)  # il suit la fenetre si on la deplace
+	_pet_scale_target = _guest_scale(info)
+	if not pet.busy:
+		pet.look = Vector2(0.55, -0.15)  # il regarde le plateau
+
+
+func _exit_guest(forget := true) -> void:
+	if is_instance_valid(_guest_win):
+		_guest_win.call("set_external_avatar", false)
+	if forget:
+		_guest_win = null
+	_guest_cd = 2.0
+	_guest_away = 0.0
+	_pet_scale_target = 1.0
+	if state in ["guest", "guest_jump"]:
+		_set_taskbar()
+		state = "fall"
+		vel = Vector2(0.0, -260.0 * s)
+		pet.airborne = true
 
 
 ## Prepare le menu et la boutique en coulisse : clic droit et double-clic deviennent instantanes.

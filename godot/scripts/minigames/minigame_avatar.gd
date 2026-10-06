@@ -8,6 +8,8 @@ extends Control
 var fur := Color("f59ab8")
 var mood := "idle"
 var thinking := false
+## true : le vrai compagnon 3D est assis dans la carte ; on ne dessine plus que ses bulles (pensee, paroles).
+var external := false
 
 var _base_mood := "idle"
 var _mood_t := 0.0
@@ -59,6 +61,12 @@ func set_mood(m: String, duration := 0.0) -> void:
 	else:
 		mood = m
 		_mood_t = duration
+
+
+## Point ou se posent les pieds du compagnon (coordonnees locales).
+func floor_point() -> Vector2:
+	var s := minf(size.x / 220.0, size.y / 200.0)
+	return Vector2(size.x * 0.5, size.y - 18.0 * s)
 
 
 func set_thinking(on: bool) -> void:
@@ -116,14 +124,19 @@ func _draw() -> void:
 	var breathe := sin(_t * 2.4) * 0.025
 	var sq := Vector2(1.0 + breathe - _jump_v * 0.00012, 1.0 - breathe + _jump_v * 0.00012)
 	var c := base + Vector2(0, -r * sq.y + _jump)
-	# ombre au sol
-	var shrink := clampf(1.0 + _jump / 160.0, 0.5, 1.0)
-	draw_set_transform(base + Vector2(0, -2), 0.0, Vector2(1.0, 0.22))
-	draw_circle(Vector2.ZERO, r * 0.95 * shrink, Color(0.35, 0.12, 0.3, 0.14), true, -1.0, true)
-	draw_circle(Vector2.ZERO, r * 0.7 * shrink, Color(0.35, 0.12, 0.3, 0.1), true, -1.0, true)
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-	_draw_body(c, r, sq)
-	_draw_face(c, r, sq)
+	if external:
+		# le vrai compagnon est la : ses bulles partent du haut de sa tete (un peu plus grand que le dessin)
+		c = base + Vector2(0, -r * 1.25)
+		r *= 1.25
+	else:
+		# ombre au sol
+		var shrink := clampf(1.0 + _jump / 160.0, 0.5, 1.0)
+		draw_set_transform(base + Vector2(0, -2), 0.0, Vector2(1.0, 0.22))
+		draw_circle(Vector2.ZERO, r * 0.95 * shrink, Color(0.35, 0.12, 0.3, 0.14), true, -1.0, true)
+		draw_circle(Vector2.ZERO, r * 0.7 * shrink, Color(0.35, 0.12, 0.3, 0.1), true, -1.0, true)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		_draw_body(c, r, sq)
+		_draw_face(c, r, sq)
 	if _think_a > 0.01:
 		_draw_think(c + Vector2(r * 0.95, -r * 1.05), s, _think_a)
 	if _bubble_a > 0.01 and _text != "":

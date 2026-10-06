@@ -75,6 +75,7 @@ func _debug_overrides(args: PackedStringArray) -> void:
 		_modes_test()
 	if args.has("--minigames"):
 		get_tree().create_timer(2.5).timeout.connect(func(): get_node("Desktop").open_minigames("connect4"))
+		get_tree().create_timer(2.7).timeout.connect(func(): if MiniGames.current(): MiniGames.current().move_to_foreground())
 		get_tree().create_timer(5.0).timeout.connect(func():
 			var wins: Array = [get_window()]
 			wins.append_array(get_tree().root.find_children("*", "Window", true, false))
@@ -84,6 +85,14 @@ func _debug_overrides(args: PackedStringArray) -> void:
 			var mg := MiniGames.current()
 			if mg:
 				mg.get_texture().get_image().save_png(ProjectSettings.globalize_path("user://minigames_inapp.png"))
+				var dc2 := get_node("Desktop")
+				print("GUEST state=%s scale=%.2f pos=%s" % [dc2.state, stage.pet.scale.x, dc2.pos])
+				var info: Dictionary = mg.call("avatar_screen_info")
+				if not info.is_empty():
+					var rr: Rect2 = info["rect"]
+					var cap := DisplayServer.screen_get_image_rect(Rect2i(rr.grow(60)))
+					if cap:
+						cap.save_png(ProjectSettings.globalize_path("user://minigames_guest.png"))
 			if OS.get_cmdline_user_args().has("--quit-after-snap"):
 				get_tree().quit())
 	if args.has("--situations-brain-test"):
