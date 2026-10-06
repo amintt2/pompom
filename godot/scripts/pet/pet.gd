@@ -141,7 +141,7 @@ func build(p_species: String, color: Color, p_material := "peluche", p_eyes := "
 		var strands := 16000 if shells < 10 else (34000 if shells < 14 else (56000 if shells < 24 else 80000))
 		strands = int(strands * float(mat.get("fur_scale", 1.0)) ** 0.5)
 		var under_shells := maxi(6, int(shells * 0.6))
-		body_mats = PetAssets.apply_fur(body, color, skin * 0.6, float(sp.get("density", 70.0)) * 0.9 * float(mat.get("density_scale", 1.0)),
+		body_mats = PetAssets.apply_fur(body, color, skin * 0.68, float(sp.get("density", 70.0)) * 0.9 * float(mat.get("density_scale", 1.0)),
 			under_shells, _env_base, float(mat.get("sheen", 0.0)), 0, strands)
 	else:
 		skin = 0.012

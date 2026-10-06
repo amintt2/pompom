@@ -20,6 +20,7 @@ const SEP_H := 11.0
 const HEADER_H := 66.0
 
 static var _current: PetMenu
+static var _pool: PetMenu  # une seule fenetre, reutilisee : l'ouverture est instantanee
 
 var items: Array = []
 var on_pick := Callable()
@@ -36,14 +37,27 @@ static func open_at(screen_pos: Vector2i, p_items: Array, p_on_pick := Callable(
 	var host: Node = parent
 	if host == null:
 		host = (Engine.get_main_loop() as SceneTree).root
-	var m := PetMenu.new()
+	var m: PetMenu = _pool if is_instance_valid(_pool) and not _pool.is_queued_for_deletion() else null
+	if m == null:
+		m = PetMenu.new()
+		_pool = m
+	if m.get_parent() == null:
+		host.add_child(m)
 	m.items = p_items
 	m.on_pick = p_on_pick
 	m.opts = p_opts
-	host.add_child(m)
+	m._picked = false
 	m._open(screen_pos)
 	_current = m
 	return m
+
+
+## Cree la fenetre du menu a l'avance (cachee) pour que le premier clic droit soit instantane.
+static func prewarm(parent: Node) -> void:
+	if is_instance_valid(_pool):
+		return
+	_pool = PetMenu.new()
+	parent.add_child(_pool)
 
 
 ## Menu propose pour le compagnon de bureau (ids = ceux de DesktopController._on_menu).
@@ -82,10 +96,12 @@ func _open(screen_pos: Vector2i) -> void:
 	var sc := _screen_at(screen_pos)
 	_f = UITheme.dpi_scale(sc)
 	content_scale_factor = _f
-	_body = Body.new()
-	_body.menu = self
-	_body.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(_body)
+	if _body == null:
+		_body = Body.new()
+		_body.menu = self
+		_body.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		add_child(_body)
+	_body.reset()
 	var logical := Vector2(W, _content_h()) + Vector2(MARGIN, MARGIN) * 2.0
 	var sz := Vector2i((logical * _f).ceil())
 	var usable := DisplayServer.screen_get_usable_rect(sc)
@@ -161,7 +177,8 @@ func _dismiss() -> void:
 func _on_hide() -> void:
 	if _current == self:
 		_current = null
-	if not is_queued_for_deletion():
+	# la fenetre est gardee pour la prochaine ouverture (sauf si ce n'est pas celle du pool)
+	if _pool != self and not is_queued_for_deletion():
 		queue_free.call_deferred()
 
 
@@ -202,6 +219,7 @@ class Body extends Control:
 	var _hl := Rect2()
 	var _hl_a := 0.0
 	var _tw: Tween
+	var _appear_tw: Tween
 	var _card := Rect2()
 
 	func _ready() -> void:
@@ -226,13 +244,23 @@ class Body extends Control:
 			y += PetMenu.ROW_H
 		pivot_offset = Vector2(lerpf(_card.position.x, _card.end.x, anchor_corner.x), lerpf(_card.position.y, _card.end.y, anchor_corner.y))
 
+	func reset() -> void:
+		if _tw:
+			_tw.kill()
+		hover = -1
+		_hl_a = 0.0
+		_layout()
+		queue_redraw()
+
 	func appear() -> void:
 		_layout()
+		if _appear_tw:
+			_appear_tw.kill()
 		modulate.a = 0.0
-		scale = Vector2.ONE * 0.92
-		var t := create_tween().set_parallel()
-		t.tween_property(self, "modulate:a", 1.0, 0.12)
-		t.tween_property(self, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		scale = Vector2.ONE * 0.94
+		_appear_tw = create_tween().set_parallel()
+		_appear_tw.tween_property(self, "modulate:a", 1.0, 0.07)
+		_appear_tw.tween_property(self, "scale", Vector2.ONE, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 	func _row_at(p: Vector2) -> int:
 		for i in rows.size():

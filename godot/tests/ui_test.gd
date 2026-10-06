@@ -887,7 +887,8 @@ func _test_menu() -> void:
 	await wait(0.2)
 	var m5 := PetMenu.open_at(pos + Vector2i(-50, 0), PetMenu.default_items(), Callable(), self)
 	await wait(0.3)
-	check("menu: opening a second menu closes the first", not is_instance_valid(m4) or not m4.visible)
+	check("menu: opening a second menu closes the first", is_instance_valid(m5) and m5.visible and (m4 == m5 or not is_instance_valid(m4) or not m4.visible))
+	check("menu: window is reused (instant open)", m4 == m5 and m == m5)
 	# clic exterieur (vrai clic OS sur notre propre fenetre de test)
 	if OS.get_cmdline_user_args().has("--os-click"):
 		# vrai clic systeme sur notre fenetre de test (deplace le curseur : option)

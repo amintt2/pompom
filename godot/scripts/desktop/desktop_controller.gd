@@ -44,7 +44,7 @@ var _attention_t := 400.0
 var _carry_talk_cd := 0.0
 var _prev_look := {}
 var _tray: StatusIndicator
-var _shop: Window
+var _shop: ShopWindow
 var _peek_shy := 0.0
 var _move_tween: Tween
 ## Surface sur laquelle il est pose : id 0 = barre des taches, sinon le handle de la fenetre.
@@ -68,6 +68,10 @@ var _pet_scale_target := 1.0
 var _dive_t := 0.0
 var _hang_t := 0.0
 var _shake := {"last_dx": 0.0, "flips": [], "cd": 0.0}
+var _perf_t := 0.0
+var perf_locked := false  # --bench
+var _mouse_dist := INF
+var _cap_interval := 0.15
 
 
 func setup(p_stage: PetStage, p_emotes: EmoteLayer) -> void:
@@ -145,6 +149,8 @@ func setup(p_stage: PetStage, p_emotes: EmoteLayer) -> void:
 		pet.act_stretch()
 	if OS.get_cmdline_user_args().has("--open-shop"):
 		open_shop("head")
+	else:
+		get_tree().create_timer(2.5).timeout.connect(_prewarm_ui)
 
 
 # =========================================================================== reglages / taille
@@ -482,11 +488,55 @@ func _process(delta: float) -> void:
 	if _poly_t <= 0.0:
 		_poly_t = 0.06
 		_update_polygon()
+	_mouse_dist = dist
+	_update_perf(delta)
 	_cap_t -= delta
-	if _cap_t <= 0.0 and state != "hidden":
-		_cap_t = capture.interval
-		var self_img: Image = get_viewport().get_texture().get_image() if capture.inpaint else null
-		capture.capture(Rect2i(Vector2i(pos), Vector2i(W, H)), center, _pet_px(), pet, self_img)
+	if _cap_t <= 0.0 and state != "hidden" and _cap_interval > 0.0:
+		if capture.capture(Rect2i(Vector2i(pos), Vector2i(W, H)), center, _pet_px(), pet, _poly):
+			_cap_t = _cap_interval
+
+
+## Images par seconde, sur-echantillonnage et frequence de capture selon la situation :
+## tres fluide quand on le regarde ou qu'on le touche, econome pendant un jeu, presque a l'arret cache.
+func _update_perf(delta: float) -> void:
+	if perf_locked:
+		return
+	_perf_t -= delta
+	var busy_ui := (_shop != null and is_instance_valid(_shop) and _shop.visible) or PetMenu.current() != null
+	var active := busy_ui or state in ["drag", "fall"] or _mouse_dist < _pet_px() * 2.0
+	if _perf_t > 0.0 and not (active and Engine.max_fps != _perf_fps_full()):
+		return
+	_perf_t = 0.25
+	var fps := _perf_fps_full()
+	var ssaa := float(GameState.settings.get("ssaa", 2.0))
+	var cap := capture.interval
+	var saver := bool(GameState.settings.get("game_saver", true))
+	if state == "hidden":
+		fps = 8
+		cap = -1.0
+	elif saver and mode in ["game", "fs", "comp"] and not active:
+		# en jeu : le jeu passe d'abord (petite fenetre, 30 images/s, pas de sur-echantillonnage)
+		fps = 30
+		ssaa = minf(ssaa, 1.0)
+		cap = 1.0
+	elif mode == "meeting" and not active:
+		fps = 30
+		cap = 0.6
+	elif pet.sleeping and not active:
+		fps = 30
+		cap = 0.5
+	elif _mouse_still > 20.0 and not pet.busy and state == "ground" and Activity.idle_sec > 60.0:
+		# personne ne bouge depuis un moment : il respire, ca suffit
+		fps = mini(fps, 60) if fps > 0 else 60
+	if Engine.max_fps != fps:
+		Engine.max_fps = fps
+	if not is_equal_approx(get_viewport().scaling_3d_scale, ssaa):
+		get_viewport().scaling_3d_scale = ssaa
+	_cap_interval = cap
+
+
+func _perf_fps_full() -> int:
+	return int(GameState.settings.get("fps", 120))
 
 
 func _input(event: InputEvent) -> void:
@@ -504,6 +554,9 @@ func _input(event: InputEvent) -> void:
 				_press = true
 				_press_mouse = mouse
 				_grab = mouse - pos
+				# retour immediat sous le doigt : il s'enfonce un peu des qu'on appuie
+				if state in ["ground", "walk", "spot"]:
+					pet.land(0.9)
 			else:
 				if state == "drag":
 					_end_drag()
@@ -1410,13 +1463,21 @@ func _on_menu(id: int) -> void:
 
 
 func open_shop(tab := "head") -> void:
-	if _shop and is_instance_valid(_shop):
-		_shop.call("show_tab", tab)
-		_shop.grab_focus()
-		return
-	_shop = ShopWindow.new()
-	add_child(_shop)
+	if _shop == null or not is_instance_valid(_shop):
+		_shop = ShopWindow.new()
+		_shop.keep_alive = true
+		add_child(_shop)
 	_shop.call("open", tab)
+
+
+## Prepare le menu et la boutique en coulisse : clic droit et double-clic deviennent instantanes.
+func _prewarm_ui() -> void:
+	PetMenu.prewarm(self)
+	if _shop == null or not is_instance_valid(_shop):
+		_shop = ShopWindow.new()
+		_shop.keep_alive = true
+		add_child(_shop)
+		_shop.prebuild()
 
 
 func quit() -> void:

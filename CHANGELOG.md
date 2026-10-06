@@ -3,6 +3,25 @@
 Toutes les versions de Pompom. Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/)
 et les numéros suivent [SemVer](https://semver.org/lang/fr/).
 
+## [0.2.2-beta] - 2026-10-06
+
+### Corrigé
+- **Grand rectangle noir autour de lui** (v0.2.1) : l'anticrénelage 2D appliqué à la fenêtre principale cassait sa transparence. Il est retiré de cette fenêtre (la boutique et le menu le gardent).
+
+### Fluide à 120 images/s
+- Il tourne désormais à **120 images/s** (avant : 30). Nouveau réglage « Images par seconde » : 60, 120, 144 ou Max.
+- La capture de l'écran pour les reflets se fait sur un fil d'exécution séparé, sans relecture de la carte graphique : plus de saccades (pire image : 40 ms → 9 ms, temps moyen 3,3 → 2,2 ms).
+- Il s'adapte tout seul : plein régime quand tu le regardes ou le touches, 60 images/s quand personne ne bouge, 30 quand il dort.
+- **Économie en jeu** (activé par défaut) : pendant tes parties, 30 images/s, pas de suréchantillonnage et reflets rafraîchis une fois par seconde, pour ne pas te coûter de FPS. Caché dans un jeu compétitif, il ne consomme presque plus rien.
+
+### Plus réactif
+- La boutique est préparée en coulisse au démarrage : elle s'ouvre en moins de 0,1 s (avant : jusqu'à 1,4 s).
+- Animations du menu et de la boutique plus vives.
+- Il s'enfonce sous ton doigt dès que tu appuies (retour immédiat au clic).
+
+### Plus doux
+- Fourrure environ 30 % plus longue et plus duveteuse.
+
 ## [0.2.1-beta] - 2026-10-06
 
 ### Interface plus nette

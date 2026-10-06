@@ -206,7 +206,7 @@ static func apply_fur(mi: MeshInstance3D, color: Color, fur_length: float, densi
 	if splats > 0:
 		mats.append(_make_splats(mi, fur_length, splats, registry))
 	if strands > 0:
-		mats.append(_make_strands(mi, fur_length * 1.05, strands, registry))
+		mats.append(_make_strands(mi, fur_length * 1.35, strands, registry))
 	var mc := fur_matcap()
 	for m in mats:
 		m.set_shader_parameter("fur_matcap", mc)

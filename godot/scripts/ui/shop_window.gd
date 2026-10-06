@@ -96,6 +96,9 @@ var _old_fps := 0
 var _commit_t := -1.0
 var _pending_commit := Callable()
 var _closing := false
+## true : fermer la cache au lieu de la detruire (le compagnon la garde prete).
+var keep_alive := false
+var _anim_tw: Tween
 var _opened := false
 
 
@@ -114,9 +117,9 @@ func _init() -> void:
 	msaa_2d = Viewport.MSAA_4X
 
 
-func open(tab: String) -> void:
+## Construit la boutique sans l'afficher (au demarrage) : l'ouverture devient instantanee.
+func prebuild() -> void:
 	if _opened:
-		show_tab(tab)
 		return
 	_opened = true
 	theme = UITheme.theme()
@@ -125,24 +128,31 @@ func open(tab: String) -> void:
 	close_requested.connect(close_shop)
 	size_changed.connect(_on_resized)
 	_build()
-	_old_fps = Engine.max_fps
-	if Engine.max_fps > 0 and Engine.max_fps < 60:
-		Engine.max_fps = 60  # animations fluides tant que la boutique est ouverte
 	for pair in [[GameState.coins_changed, _on_coins], [GameState.appearance_changed, _on_appearance],
 			[GameState.equipment_changed, _on_equipment], [GameState.settings_changed, _on_settings],
 			[GameState.needs_changed, _on_needs], [GameState.xp_changed, _on_xp], [GameState.level_up, _on_level_up],
 			[GameState.quest_completed, _on_quest_completed], [GameState.stats_changed, _on_stats_changed]]:
 		if not pair[0].is_connected(pair[1]):
 			pair[0].connect(pair[1])
+
+
+func open(tab: String) -> void:
+	if _opened and visible and not _closing:
+		show_tab(tab)
+		return
+	prebuild()
+	_closing = false
+	if _anim_tw:
+		_anim_tw.kill()
 	show()
 	_on_resized()
 	show_tab(tab)
 	_frame.pivot_offset = _frame.size * 0.5
 	_frame.modulate.a = 0.0
 	_frame.scale = Vector2.ONE * 0.98
-	var t := create_tween().set_parallel()
-	t.tween_property(_frame, "modulate:a", 1.0, 0.18)
-	t.tween_property(_frame, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_anim_tw = create_tween().set_parallel()
+	_anim_tw.tween_property(_frame, "modulate:a", 1.0, 0.12)
+	_anim_tw.tween_property(_frame, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	grab_focus()
 
 
@@ -153,15 +163,27 @@ func close_shop() -> void:
 	if not _opened or _frame == null:
 		queue_free()
 		return
-	var t := create_tween().set_parallel()
-	t.tween_property(_frame, "modulate:a", 0.0, 0.12)
-	t.tween_property(_frame, "scale", Vector2.ONE * 0.98, 0.12)
-	t.chain().tween_callback(queue_free)
+	if _anim_tw:
+		_anim_tw.kill()
+	_anim_tw = create_tween().set_parallel()
+	_anim_tw.tween_property(_frame, "modulate:a", 0.0, 0.1)
+	_anim_tw.tween_property(_frame, "scale", Vector2.ONE * 0.98, 0.1)
+	_anim_tw.chain().tween_callback(_after_close)
+
+
+func _after_close() -> void:
+	if not keep_alive:
+		queue_free()
+		return
+	# gardee en memoire, cachee : la prochaine ouverture est immediate
+	if is_instance_valid(dialog):
+		dialog.close(false)
+	hide()
+	_closing = false
 
 
 func _exit_tree() -> void:
-	if _old_fps > 0:
-		Engine.max_fps = _old_fps
+	pass
 
 
 ## Taille en px physiques pour une taille logique donnee.
@@ -185,7 +207,9 @@ func _apply_scale(f: float, recenter: bool) -> void:
 
 
 func _process(delta: float) -> void:
-	if not _opened or _closing:
+	if _sv and not visible and _sv.render_target_update_mode != SubViewport.UPDATE_DISABLED:
+		_sv.render_target_update_mode = SubViewport.UPDATE_DISABLED  # cachee : l'apercu ne coute rien
+	if not _opened or _closing or not visible:
 		return
 	# rotation de l'apercu avec inertie
 	if not _drag_rot and absf(_rot_vel) > 0.01:
@@ -1917,6 +1941,7 @@ const SETTING_OPTIONS := {
 	"size": [["Petit", 0.75], ["Moyen", 1.0], ["Grand", 1.3], ["Très grand", 1.7]],
 	"fur_quality": [["Rapide", 8], ["Normale", 16], ["Magnifique", 26]],
 	"ssaa": [["Normal", 1.0], ["Élevé", 1.5], ["Maximum", 2.0]],
+	"fps": [["60", 60], ["120", 120], ["144", 144], ["Max", 0]],
 }
 
 
@@ -1942,6 +1967,8 @@ func _build_settings_page() -> Control:
 	_setting_row(g1, "Taille", "La taille de %s sur ton bureau." % GameState.pet_name, _seg_setting("size"))
 	_setting_row(g1, "Qualité de la fourrure", "Plus c'est beau, plus ça demande à ta carte graphique.", _seg_setting("fur_quality"))
 	_setting_row(g1, "Lissage des contours", "Des bords plus doux, sans escaliers.", _seg_setting("ssaa"))
+	_setting_row(g1, "Images par seconde", "Sa fluidité quand tu le regardes. Il ralentit tout seul quand personne ne le regarde.", _seg_setting("fps"))
+	_setting_row(g1, "Économie en jeu", "Pendant tes parties, il se fait léger (30 images/s) pour ne pas te coûter de FPS.", _toggle_setting("game_saver"))
 	_setting_row(g1, "Reflets de l'écran", "Il reflète et réfracte ce qu'il y a autour de lui.", _toggle_setting("reflections"))
 	_setting_row(g1, "Visible en partage d'écran", "Il apparaît dans tes partages d'écran et captures. Désactive pour des reflets parfaitement exacts (il sera alors invisible en partage).", _toggle_setting("share_visible"), false)
 
@@ -2027,7 +2054,7 @@ func _option_index(key: String) -> int:
 
 ## Valeurs par defaut des reglages qui peuvent manquer dans une vieille sauvegarde.
 const SETTING_DEFAULTS := {"eat_files": true, "clipboard": false, "suggestions": false, "ai_gpu": true,
-	"screenshots": true, "share_visible": true, "auto_update": true, "competitive_hide": true}
+	"screenshots": true, "share_visible": true, "auto_update": true, "competitive_hide": true, "game_saver": true}
 
 
 static func setting_on(key: String) -> bool:

@@ -75,8 +75,67 @@ func _debug_overrides(args: PackedStringArray) -> void:
 		_modes_test()
 	if args.has("--plat-test"):
 		_plat_test()
+	for a in args:
+		if a.begins_with("--bench"):
+			_bench(float(a.trim_prefix("--bench=")) if a.contains("=") else 10.0)
 	if args.has("--phone"):
 		get_tree().create_timer(2.5).timeout.connect(func(): stage.pet.act_phone(30.0))
+
+
+## Mesure des performances (--bench[=secondes]) : sans limite d'images, il danse pendant la mesure.
+func _bench(secs: float) -> void:
+	GameState.no_save = true
+	Engine.max_fps = 0
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+	var vp := get_viewport().get_viewport_rid()
+	RenderingServer.viewport_set_measure_render_time(vp, true)
+	await get_tree().create_timer(3.0).timeout
+	stage.pet.act_dance()
+	var dc := get_node_or_null("Desktop")
+	if dc:
+		dc.perf_locked = true
+		Engine.max_fps = 0
+		get_viewport().scaling_3d_scale = float(GameState.settings.get("ssaa", 2.0))
+		dc.capture.cost_us = 0
+		dc.capture.cost_n = 0
+		dc.capture.cost_max = 0
+	Prof.reset()
+	var ft: Array[float] = []
+	var gpu := 0.0
+	var cpu := 0.0
+	var proc := 0.0
+	var t0 := Time.get_ticks_msec()
+	var last := Time.get_ticks_usec()
+	while Time.get_ticks_msec() - t0 < secs * 1000.0:
+		await get_tree().process_frame
+		var now := Time.get_ticks_usec()
+		ft.append((now - last) / 1000.0)
+		last = now
+		gpu += RenderingServer.viewport_get_measured_render_time_gpu(vp)
+		cpu += RenderingServer.viewport_get_measured_render_time_cpu(vp) + RenderingServer.get_frame_setup_time_cpu()
+		proc += Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0
+		if not stage.pet.busy and randf() < 0.02:
+			stage.pet.act_dance()
+	var n := ft.size()
+	var sorted := ft.duplicate()
+	sorted.sort()
+	var total := 0.0
+	for f in ft:
+		total += f
+	print("BENCH frames=%d fps=%.1f avg=%.2fms p95=%.2fms p99=%.2fms max=%.2fms" % [n, n / (total / 1000.0), total / n,
+		sorted[int(n * 0.95)], sorted[int(n * 0.99)], sorted[n - 1]])
+	print("BENCH gpu=%.2fms render_cpu=%.2fms process=%.2fms size=%s scale3d=%.2f" % [gpu / n, cpu / n, proc / n,
+		get_window().size, get_viewport().scaling_3d_scale])
+	if dc and dc.capture.cost_n > 0:
+		print("BENCH capture (thread) n=%d avg=%.2fms max=%.2fms" % [dc.capture.cost_n, dc.capture.cost_us / 1000.0 / dc.capture.cost_n,
+			dc.capture.cost_max / 1000.0])
+	var slow := 0
+	for f in ft:
+		if f > 8.3:
+			slow += 1
+	print("BENCH frames>8.3ms (sous 120 fps) = %d" % slow)
+	Prof.report()
+	get_tree().quit()
 
 
 ## Test : saute sur la premiere fenetre disponible.
