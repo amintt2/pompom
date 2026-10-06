@@ -50,10 +50,10 @@ static func draw(ci: CanvasItem, icon: String, rect: Rect2, col: Color, weight :
 			pts[22] = _p(o, s, 7.5, 14.2)
 			pts[23] = _p(o, s, 9.6, 16.6)
 			ci.draw_polyline(pts, col, w, true)
-			ci.draw_circle(_p(o, s, 8.6, 9.0), 1.7 * s, Color("ff6fa8") if col.v > 0.9 and col.s < 0.1 else col)
-			ci.draw_circle(_p(o, s, 13.0, 7.2), 1.7 * s, Color("ffc94a") if col.v > 0.9 and col.s < 0.1 else col)
-			ci.draw_circle(_p(o, s, 16.8, 10.6), 1.7 * s, Color("63aef5") if col.v > 0.9 and col.s < 0.1 else col)
-			ci.draw_circle(_p(o, s, 15.6, 15.4), 1.7 * s, Color("5fd3a4") if col.v > 0.9 and col.s < 0.1 else col)
+			ci.draw_circle(_p(o, s, 8.6, 9.0), 1.7 * s, Color("ff6fa8") if col.v > 0.9 and col.s < 0.1 else col, true, -1.0, true)
+			ci.draw_circle(_p(o, s, 13.0, 7.2), 1.7 * s, Color("ffc94a") if col.v > 0.9 and col.s < 0.1 else col, true, -1.0, true)
+			ci.draw_circle(_p(o, s, 16.8, 10.6), 1.7 * s, Color("63aef5") if col.v > 0.9 and col.s < 0.1 else col, true, -1.0, true)
+			ci.draw_circle(_p(o, s, 15.6, 15.4), 1.7 * s, Color("5fd3a4") if col.v > 0.9 and col.s < 0.1 else col, true, -1.0, true)
 		"chart":
 			_line(ci, o, s, [5.5, 19.5, 5.5, 13.5], col, w * 1.5)
 			_line(ci, o, s, [12, 19.5, 12, 8.5], col, w * 1.5)
@@ -70,7 +70,7 @@ static func draw(ci: CanvasItem, icon: String, rect: Rect2, col: Color, weight :
 		"coin":
 			coin(ci, rect.get_center(), minf(rect.size.x, rect.size.y) * 0.46)
 		"heart":
-			ci.draw_colored_polygon(heart_points(_p(o, s, 12, 12.6), 9.2 * s), col)
+			fill_aa(ci, heart_points(_p(o, s, 12, 12.6), 9.2 * s), col)
 		"lock":
 			_rrect(ci, o, s, Rect2(5, 10.5, 14, 10.5), 2.5, col, w, true)
 			ci.draw_arc(_p(o, s, 12, 10.5), 4.2 * s, PI, TAU, 16, col, w * 1.1, true)
@@ -90,16 +90,16 @@ static func draw(ci: CanvasItem, icon: String, rect: Rect2, col: Color, weight :
 			ci.draw_arc(_p(o, s, 12, 12), 9.2 * s, 0, TAU, 36, col, w, true)
 			match icon:
 				"love":
-					ci.draw_colored_polygon(heart_points(_p(o, s, 8.6, 10.2), 2.6 * s), col)
-					ci.draw_colored_polygon(heart_points(_p(o, s, 15.4, 10.2), 2.6 * s), col)
+					fill_aa(ci, heart_points(_p(o, s, 8.6, 10.2), 2.6 * s), col)
+					fill_aa(ci, heart_points(_p(o, s, 15.4, 10.2), 2.6 * s), col)
 				"angry":
 					_line(ci, o, s, [7, 8, 10.4, 9.6], col, w * 0.9)
 					_line(ci, o, s, [17, 8, 13.6, 9.6], col, w * 0.9)
-					ci.draw_circle(_p(o, s, 9, 11.4), 1.25 * s, col)
-					ci.draw_circle(_p(o, s, 15, 11.4), 1.25 * s, col)
+					ci.draw_circle(_p(o, s, 9, 11.4), 1.25 * s, col, true, -1.0, true)
+					ci.draw_circle(_p(o, s, 15, 11.4), 1.25 * s, col, true, -1.0, true)
 				_:
-					ci.draw_circle(_p(o, s, 9, 10), 1.3 * s, col)
-					ci.draw_circle(_p(o, s, 15, 10), 1.3 * s, col)
+					ci.draw_circle(_p(o, s, 9, 10), 1.3 * s, col, true, -1.0, true)
+					ci.draw_circle(_p(o, s, 15, 10), 1.3 * s, col, true, -1.0, true)
 			match icon:
 				"smile", "love":
 					ci.draw_arc(_p(o, s, 12, 12.4), 4.4 * s, PI * 0.18, PI * 0.82, 14, col, w, true)
@@ -110,7 +110,7 @@ static func draw(ci: CanvasItem, icon: String, rect: Rect2, col: Color, weight :
 		"bolt":
 			_fill(ci, o, s, [13.5, 2.2, 4.8, 13.6, 11.2, 13.6, 10.2, 21.8, 19.2, 10.0, 12.8, 10.0, 13.5, 2.2], col)
 		"moon":
-			ci.draw_colored_polygon(moon_points(o, s), col)
+			fill_aa(ci, moon_points(o, s), col)
 		"sun":
 			ci.draw_arc(_p(o, s, 12, 12), 4.2 * s, 0, TAU, 24, col, w, true)
 			for k in 8:
@@ -119,8 +119,8 @@ static func draw(ci: CanvasItem, icon: String, rect: Rect2, col: Color, weight :
 		"bag":
 			_poly(ci, o, s, [5.2, 8.5, 18.8, 8.5, 19.8, 20.5, 4.2, 20.5], col, w)
 			ci.draw_arc(_p(o, s, 12, 8.5), 3.6 * s, PI, TAU, 14, col, w, true)
-			ci.draw_circle(_p(o, s, 8.6, 11.6), 1.0 * s, col)
-			ci.draw_circle(_p(o, s, 15.4, 11.6), 1.0 * s, col)
+			ci.draw_circle(_p(o, s, 8.6, 11.6), 1.0 * s, col, true, -1.0, true)
+			ci.draw_circle(_p(o, s, 15.4, 11.6), 1.0 * s, col, true, -1.0, true)
 		"taskbar":
 			_line(ci, o, s, [3.5, 20, 20.5, 20], col, w * 1.3)
 			_line(ci, o, s, [12, 3.5, 12, 14.5], col, w)
@@ -143,8 +143,8 @@ static func draw(ci: CanvasItem, icon: String, rect: Rect2, col: Color, weight :
 					var t := absf(i / 8.0 - 0.5) * 2.0
 					var rad := lerpf(3.0, 9.5, pow(t, 2.2))
 					sp.append(_p(o, s, 11 + cos(a) * rad, 13 + sin(a) * rad))
-			ci.draw_colored_polygon(sp, col)
-			ci.draw_circle(_p(o, s, 19.5, 4.5), 1.9 * s, col)
+			fill_aa(ci, sp, col)
+			ci.draw_circle(_p(o, s, 19.5, 4.5), 1.9 * s, col, true, -1.0, true)
 		"star":
 			var st := []
 			for k in 10:
@@ -160,8 +160,8 @@ static func draw(ci: CanvasItem, icon: String, rect: Rect2, col: Color, weight :
 			ci.draw_arc(_p(o, s, 12, 13.5), 8.2 * s, 0, TAU, 32, col, w, true)
 			ci.draw_arc(_p(o, s, 6.8, 6.6), 2.4 * s, PI * 0.9, PI * 1.95, 10, col, w, true)
 			ci.draw_arc(_p(o, s, 17.2, 6.6), 2.4 * s, PI * 1.05, PI * 2.1, 10, col, w, true)
-			ci.draw_circle(_p(o, s, 9.4, 13.4), 1.3 * s, col)
-			ci.draw_circle(_p(o, s, 14.6, 13.4), 1.3 * s, col)
+			ci.draw_circle(_p(o, s, 9.4, 13.4), 1.3 * s, col, true, -1.0, true)
+			ci.draw_circle(_p(o, s, 14.6, 13.4), 1.3 * s, col, true, -1.0, true)
 		"drop":
 			var d := PackedVector2Array()
 			d.append(_p(o, s, 12, 2.8))
@@ -174,7 +174,7 @@ static func draw(ci: CanvasItem, icon: String, rect: Rect2, col: Color, weight :
 		"eye":
 			ci.draw_arc(_p(o, s, 12, 20.5), 12.0 * s, PI * 1.22, PI * 1.78, 20, col, w, true)
 			ci.draw_arc(_p(o, s, 12, 3.5), 12.0 * s, PI * 0.22, PI * 0.78, 20, col, w, true)
-			ci.draw_circle(_p(o, s, 12, 12), 3.2 * s, col)
+			ci.draw_circle(_p(o, s, 12, 12), 3.2 * s, col, true, -1.0, true)
 		"mouth":
 			ci.draw_arc(_p(o, s, 12, 8.0), 8.0 * s, PI * 0.12, PI * 0.88, 20, col, w, true)
 			_line(ci, o, s, [4.4, 10.6, 19.6, 10.6], col, w)
@@ -190,12 +190,12 @@ static func draw(ci: CanvasItem, icon: String, rect: Rect2, col: Color, weight :
 			_rrect(ci, o, s, Rect2(2.4, 7.2, 19.2, 11.2), 5.2, col, w)
 			_line(ci, o, s, [7.4, 10.4, 7.4, 15.2], col, w)
 			_line(ci, o, s, [5.0, 12.8, 9.8, 12.8], col, w)
-			ci.draw_circle(_p(o, s, 15.6, 11.4), 1.3 * s, col)
-			ci.draw_circle(_p(o, s, 18.0, 14.0), 1.3 * s, col)
+			ci.draw_circle(_p(o, s, 15.6, 11.4), 1.3 * s, col, true, -1.0, true)
+			ci.draw_circle(_p(o, s, 18.0, 14.0), 1.3 * s, col, true, -1.0, true)
 		"info":
 			ci.draw_arc(_p(o, s, 12, 12), 9.2 * s, 0, TAU, 36, col, w, true)
 			_line(ci, o, s, [12, 11, 12, 16.5], col, w)
-			ci.draw_circle(_p(o, s, 12, 7.8), 1.3 * s, col)
+			ci.draw_circle(_p(o, s, 12, 7.8), 1.3 * s, col, true, -1.0, true)
 		"apple":
 			ci.draw_arc(_p(o, s, 9.4, 14.2), 6.2 * s, PI * 0.45, PI * 1.62, 18, col, w, true)
 			ci.draw_arc(_p(o, s, 14.6, 14.2), 6.2 * s, -PI * 0.62, PI * 0.55, 18, col, w, true)
@@ -230,28 +230,28 @@ static func draw(ci: CanvasItem, icon: String, rect: Rect2, col: Color, weight :
 			ci.draw_polyline(bu, col, w, true)
 			_line(ci, o, s, [4, 14.5, 20, 14.5], col, w * 1.2)
 			_rrect(ci, o, s, Rect2(4, 17, 16, 3.8), 1.8, col, w)
-			ci.draw_circle(_p(o, s, 9.5, 8), 0.9 * s, col)
-			ci.draw_circle(_p(o, s, 13.5, 7), 0.9 * s, col)
+			ci.draw_circle(_p(o, s, 9.5, 8), 0.9 * s, col, true, -1.0, true)
+			ci.draw_circle(_p(o, s, 13.5, 7), 0.9 * s, col, true, -1.0, true)
 		"cake":
 			_rrect(ci, o, s, Rect2(4, 11, 16, 9.5), 2.0, col, w)
 			ci.draw_polyline(_pts(o, s, [4, 14.5, 6.5, 16, 9.2, 14.5, 12, 16, 14.8, 14.5, 17.5, 16, 20, 14.5]), col, w * 0.9, true)
 			_line(ci, o, s, [12, 6.5, 12, 11], col, w)
-			ci.draw_circle(_p(o, s, 12, 4), 1.5 * s, col)
+			ci.draw_circle(_p(o, s, 12, 4), 1.5 * s, col, true, -1.0, true)
 		"cookie":
 			ci.draw_arc(_p(o, s, 12, 12), 8.6 * s, 0, TAU, 32, col, w, true)
 			for d in [[9, 9], [14.5, 8.5], [8.5, 14.5], [14, 14], [12, 11.5]]:
-				ci.draw_circle(_p(o, s, d[0], d[1]), 1.15 * s, col)
+				ci.draw_circle(_p(o, s, d[0], d[1]), 1.15 * s, col, true, -1.0, true)
 		_:
 			ci.draw_arc(_p(o, s, 12, 12), 6.0 * s, 0, TAU, 24, col, w, true)
 
 
 ## Piece d'or (toujours doree, quelle que soit la couleur demandee).
 static func coin(ci: CanvasItem, c: Vector2, r: float, a := 1.0) -> void:
-	ci.draw_circle(c + Vector2(0, r * 0.12), r, Color(UITheme.GOLD_DARK, 0.55 * a))
-	ci.draw_circle(c, r, Color(UITheme.GOLD.darkened(0.12), a))
-	ci.draw_circle(c, r * 0.80, Color(UITheme.GOLD, a))
+	ci.draw_circle(c + Vector2(0, r * 0.12), r, Color(UITheme.GOLD_DARK, 0.55 * a), true, -1.0, true)
+	ci.draw_circle(c, r, Color(UITheme.GOLD.darkened(0.12), a), true, -1.0, true)
+	ci.draw_circle(c, r * 0.80, Color(UITheme.GOLD, a), true, -1.0, true)
 	ci.draw_arc(c, r * 0.58, 0, TAU, 20, Color(UITheme.GOLD_DARK, 0.45 * a), maxf(1.0, r * 0.12), true)
-	ci.draw_circle(c + Vector2(-r * 0.32, -r * 0.34), r * 0.2, Color(1, 1, 1, 0.75 * a))
+	ci.draw_circle(c + Vector2(-r * 0.32, -r * 0.34), r * 0.2, Color(1, 1, 1, 0.75 * a), true, -1.0, true)
 
 
 static func heart_points(c: Vector2, sz: float) -> PackedVector2Array:
@@ -310,10 +310,10 @@ static func _line(ci: CanvasItem, o: Vector2, s: float, a: Array, col: Color, w:
 	var pts := _pts(o, s, a)
 	ci.draw_polyline(pts, col, w, true)
 	# bouts arrondis
-	ci.draw_circle(pts[0], w * 0.5, col)
-	ci.draw_circle(pts[pts.size() - 1], w * 0.5, col)
+	ci.draw_circle(pts[0], w * 0.5, col, true, -1.0, true)
+	ci.draw_circle(pts[pts.size() - 1], w * 0.5, col, true, -1.0, true)
 	for i in range(1, pts.size() - 1):
-		ci.draw_circle(pts[i], w * 0.5, col)
+		ci.draw_circle(pts[i], w * 0.5, col, true, -1.0, true)
 
 
 static func _poly(ci: CanvasItem, o: Vector2, s: float, a: Array, col: Color, w: float) -> void:
@@ -321,14 +321,14 @@ static func _poly(ci: CanvasItem, o: Vector2, s: float, a: Array, col: Color, w:
 	pts.append(pts[0])
 	ci.draw_polyline(pts, col, w, true)
 	for p in pts:
-		ci.draw_circle(p, w * 0.5, col)
+		ci.draw_circle(p, w * 0.5, col, true, -1.0, true)
 
 
 static func _fill(ci: CanvasItem, o: Vector2, s: float, a: Array, col: Color) -> void:
 	var pts := _pts(o, s, a)
 	if pts.size() > 3 and pts[0].is_equal_approx(pts[pts.size() - 1]):
 		pts.remove_at(pts.size() - 1)
-	ci.draw_colored_polygon(pts, col)
+	fill_aa(ci, pts, col)
 
 
 static func _rrect(ci: CanvasItem, o: Vector2, s: float, r: Rect2, rad: float, col: Color, w: float, fill := false) -> void:
@@ -344,3 +344,13 @@ static func _rrect(ci: CanvasItem, o: Vector2, s: float, r: Rect2, rad: float, c
 		sb.border_color = col
 		sb.set_border_width_all(int(round(maxf(1.0, w))))
 	ci.draw_style_box(sb, Rect2(o + r.position * s, r.size * s))
+
+
+## Polygone plein avec un liseré anticrénelé (draw_colored_polygon n'a pas d'anticrénelage).
+static func fill_aa(ci: CanvasItem, pts: PackedVector2Array, col: Color, outline := 1.0) -> void:
+	if pts.size() < 3:
+		return
+	ci.draw_colored_polygon(pts, col)
+	var ring := pts.duplicate()
+	ring.append(pts[0])
+	ci.draw_polyline(ring, col, outline, true)

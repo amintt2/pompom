@@ -98,7 +98,7 @@ class IconBubble extends Control:
 	func _draw() -> void:
 		var r := minf(size.x, size.y) * 0.5
 		var c := size * 0.5
-		draw_circle(c, r, tint if solid else tint.lerp(Color.WHITE, 0.82))
+		draw_circle(c, r, tint if solid else tint.lerp(Color.WHITE, 0.82), true, -1.0, true)
 		var ir := r * 1.05
 		UIIcons.draw(self, icon, Rect2(c - Vector2(ir, ir) * 0.5, Vector2(ir, ir)), Color.WHITE if solid else tint.darkened(0.12), 1.0)
 
@@ -142,8 +142,8 @@ class Toggle extends Button:
 		draw_style_box(UITheme.box(track, 99, Color.TRANSPARENT, 0, 0), r)
 		var kx := lerpf(r.position.x + h * 0.5, r.end.x - h * 0.5, _t)
 		var kc := Vector2(kx, r.get_center().y)
-		draw_circle(kc + Vector2(0, 1.5), h * 0.5 - 3.0, Color(0.3, 0.1, 0.2, 0.18))
-		draw_circle(kc, h * 0.5 - 3.5, Color.WHITE)
+		draw_circle(kc + Vector2(0, 1.5), h * 0.5 - 3.0, Color(0.3, 0.1, 0.2, 0.18), true, -1.0, true)
+		draw_circle(kc, h * 0.5 - 3.5, Color.WHITE, true, -1.0, true)
 		if _t > 0.5:
 			UIIcons.draw(self, "check", Rect2(kc - Vector2(6, 6), Vector2(12, 12)), Color(UITheme.ACCENT, (_t - 0.5) * 2.0), 1.1)
 
@@ -263,10 +263,10 @@ class Swatch extends Button:
 			draw_arc(c, 12.0, 0, TAU, 32, UITheme.INK, 2.0, true)
 		elif _h > 0.01:
 			draw_arc(c, 12.0, 0, TAU, 32, Color(UITheme.ACCENT, _h * 0.8), 2.0, true)
-		draw_circle(c + Vector2(0, 1), r, Color(0.2, 0.1, 0.2, 0.12))
-		draw_circle(c, r, color)
+		draw_circle(c + Vector2(0, 1), r, Color(0.2, 0.1, 0.2, 0.12), true, -1.0, true)
+		draw_circle(c, r, color, true, -1.0, true)
 		draw_arc(c, r - 0.5, 0, TAU, 32, color.darkened(0.18), 1.0, true)
-		draw_circle(c + Vector2(-r * 0.35, -r * 0.38), r * 0.22, Color(1, 1, 1, 0.45))
+		draw_circle(c + Vector2(-r * 0.35, -r * 0.38), r * 0.22, Color(1, 1, 1, 0.45), true, -1.0, true)
 		if selected:
 			var ink := Color.WHITE if color.get_luminance() < 0.6 else UITheme.INK
 			UIIcons.draw(self, "check", Rect2(c - Vector2(6, 6), Vector2(12, 12)), ink, 1.0)
@@ -299,10 +299,10 @@ class CustomSwatch extends Button:
 			var a1 := TAU * (i + 1.05) / segs
 			draw_arc(c, 9.0 + _h, a0, a1, 3, Color.from_hsv(float(i) / segs, 0.6, 1.0), 4.0, true)
 		if selected:
-			draw_circle(c, 6.5, color)
+			draw_circle(c, 6.5, color, true, -1.0, true)
 			draw_arc(c, 12.0, 0, TAU, 32, UITheme.INK, 2.0, true)
 		else:
-			draw_circle(c, 6.5, Color.WHITE)
+			draw_circle(c, 6.5, Color.WHITE, true, -1.0, true)
 			UIIcons.draw(self, "plus", Rect2(c - Vector2(5.5, 5.5), Vector2(11, 11)), UITheme.MUTED, 1.0)
 
 
@@ -317,6 +317,7 @@ class ColorPop extends PopupPanel:
 		theme = UITheme.theme()
 		transparent = true
 		transparent_bg = true
+		msaa_2d = Viewport.MSAA_4X
 		picker = ColorPicker.new()
 		picker.edit_alpha = false
 		picker.picker_shape = ColorPicker.SHAPE_OKHSL_CIRCLE
@@ -550,6 +551,7 @@ class Dialog extends Control:
 		if icon is Texture2D:
 			var tr := TextureRect.new()
 			tr.texture = icon
+			tr.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 			tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			tile.add_child(tr)
@@ -750,7 +752,7 @@ class Confetti extends Control:
 			col.a = a
 			draw_set_transform(p["pos"], p["rot"], Vector2(1.0, absf(cos(p["life"] * 7.0 + p["rot"]))))
 			if p["round"]:
-				draw_circle(Vector2.ZERO, p["sz"].y * 0.6, col)
+				draw_circle(Vector2.ZERO, p["sz"].y * 0.6, col, true, -1.0, true)
 			else:
 				draw_rect(Rect2(-p["sz"] * 0.5, p["sz"]), col)
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)

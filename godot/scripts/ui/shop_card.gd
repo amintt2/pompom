@@ -37,6 +37,7 @@ func _init() -> void:
 	_thumb.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_thumb.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	_thumb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_thumb.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	_thumb.modulate.a = 0.0
 	add_child(_thumb)
 	mouse_entered.connect(_set_hover.bind(1.0))
@@ -154,7 +155,7 @@ func _draw() -> void:
 	if locked:
 		tile = Color("f4eef2")
 	draw_style_box(UITheme.box(tile, 16, Color.TRANSPARENT, 0, 0), th)
-	draw_circle(th.get_center() + Vector2(0, 4), th.size.y * 0.36, Color(1, 1, 1, 0.55))
+	draw_circle(th.get_center() + Vector2(0, 4), th.size.y * 0.36, Color(1, 1, 1, 0.55), true, -1.0, true)
 	if icon_name != "":
 		var isz := 40.0
 		UIIcons.draw(self, icon_name, Rect2(th.get_center() - Vector2(isz, isz) * 0.5, Vector2(isz, isz)), UITheme.FAINT, 1.0)
@@ -163,7 +164,7 @@ func _draw() -> void:
 		var t := Time.get_ticks_msec() / 1000.0
 		for i in 3:
 			var a := 0.35 + 0.35 * sin(t * 5.0 - i * 0.8)
-			draw_circle(th.get_center() + Vector2((i - 1) * 12, 0), 3.5, Color(UITheme.ACCENT, a))
+			draw_circle(th.get_center() + Vector2((i - 1) * 12, 0), 3.5, Color(UITheme.ACCENT, a), true, -1.0, true)
 	_thumb.self_modulate = Color(0.95, 0.93, 0.96, 0.6) if locked else Color.WHITE
 	# nom (une ou deux lignes)
 	var f := UITheme.font(650)
@@ -182,14 +183,14 @@ func _draw() -> void:
 	# badges
 	if equipped:
 		var bc := Vector2(size.x - 18, 18)
-		draw_circle(bc + Vector2(0, 1), 11, Color(0, 0.3, 0.2, 0.15))
-		draw_circle(bc, 11, UITheme.MINT)
+		draw_circle(bc + Vector2(0, 1), 11, Color(0, 0.3, 0.2, 0.15), true, -1.0, true)
+		draw_circle(bc, 11, UITheme.MINT, true, -1.0, true)
 		UIIcons.draw(self, "check", Rect2(bc - Vector2(7, 7), Vector2(14, 14)), Color.WHITE, 1.2)
 	if pref != null:
 		var pc := Vector2(18, 18)
 		var pcol := _pref_color(int(pref))
-		draw_circle(pc + Vector2(0, 1), 11, Color(0.3, 0.1, 0.2, 0.12))
-		draw_circle(pc, 11, Color.WHITE)
+		draw_circle(pc + Vector2(0, 1), 11, Color(0.3, 0.1, 0.2, 0.12), true, -1.0, true)
+		draw_circle(pc, 11, Color.WHITE, true, -1.0, true)
 		UIIcons.draw(self, "pref_%d" % int(pref), Rect2(pc - Vector2(8, 8), Vector2(16, 16)), pcol, 0.9)
 
 

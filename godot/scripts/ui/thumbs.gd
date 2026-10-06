@@ -10,6 +10,8 @@ extends SubViewport
 const CACHE_MAX := 320
 
 static var cache := {}
+static var _px := 192  # taille de rendu courante (fait partie de la cle du cache)
+static var _used_px := {192: true}
 
 var _queue: Array = []  # [{key, kind, id, cb}]
 var _job := {}
@@ -26,7 +28,7 @@ func _init() -> void:
 	own_world_3d = true
 	render_target_update_mode = SubViewport.UPDATE_DISABLED
 	msaa_3d = Viewport.MSAA_4X
-	scaling_3d_scale = 1.5
+	scaling_3d_scale = 1.0  # la sur-resolution vient deja de la taille (2x l'affichage)
 	_cam = Camera3D.new()
 	_cam.fov = 30.0
 	add_child(_cam)
@@ -69,6 +71,27 @@ func request(kind: String, id: String, cb: Callable) -> void:
 	set_process(true)
 
 
+## Rend les miniatures a ~2x leur taille d'affichage en pixels physiques (nettes a 125 % / 150 %).
+func set_display_scale(f: float) -> void:
+	_px = clampi(int(ceil(150.0 * f * 2.0 / 16.0)) * 16, 256, 512)
+	_used_px[_px] = true
+	if _job.is_empty():
+		size = Vector2i(_px, _px)
+
+
+## Meilleure miniature deja rendue (taille courante, sinon n'importe quelle taille), ou null.
+static func best(kind: String, id: String) -> Texture2D:
+	var key := key_for(kind, id)
+	if cache.has(key):
+		return cache[key]
+	var tail := key.substr(key.find(":"))
+	for px in _used_px:
+		var k2 := str(px) + tail
+		if cache.has(k2):
+			return cache[k2]
+	return null
+
+
 func pending() -> int:
 	return _queue.size() + (0 if _job.is_empty() else 1)
 
@@ -77,10 +100,10 @@ static func key_for(kind: String, id: String) -> String:
 	match kind:
 		"item":
 			var c := GameState.colors_for(id)
-			return "item:%s:%s%s%s" % [id, c["main"].to_html(false), c["accent"].to_html(false), c["detail"].to_html(false)]
+			return "%d:item:%s:%s%s%s" % [_px, id, c["main"].to_html(false), c["accent"].to_html(false), c["detail"].to_html(false)]
 		"species":
-			return "species:" + id
-	return "%s:%s:%s|%s|%s|%s|%s|%s" % [kind, id, GameState.species, GameState.material, GameState.fur_color,
+			return "%d:species:%s" % [_px, id]
+	return "%d:%s:%s:%s|%s|%s|%s|%s|%s" % [_px, kind, id, GameState.species, GameState.material, GameState.fur_color,
 		GameState.current_eye_style(), GameState.mouth_style, GameState.current_iris().to_html(false)]
 
 
@@ -94,6 +117,8 @@ func _process(_delta: float) -> void:
 				j["cb"].call(cache[j["key"]])
 				continue
 			_job = j
+			if size.x != _px:
+				size = Vector2i(_px, _px)
 			_build(j["kind"], j["id"])
 			render_target_update_mode = SubViewport.UPDATE_ALWAYS
 			_frames = 0
@@ -107,6 +132,9 @@ func _process(_delta: float) -> void:
 	if _frames < 3:
 		return
 	var img := get_texture().get_image()
+	# bords alpha propres + mipmaps : reduction nette et sans franges sombres
+	img.fix_alpha_edges()
+	img.generate_mipmaps()
 	var tex := ImageTexture.create_from_image(img)
 	_store(_job["key"], tex)
 	rendered += 1

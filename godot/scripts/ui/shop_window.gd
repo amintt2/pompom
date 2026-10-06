@@ -110,6 +110,8 @@ func _init() -> void:
 	unfocusable = false
 	always_on_top = false
 	title = "Pompom — Boutique"
+	# l'anticrenelage 2D du projet ne s'applique qu'a la fenetre principale : on l'active ici
+	msaa_2d = Viewport.MSAA_4X
 
 
 func open(tab: String) -> void:
@@ -171,6 +173,8 @@ func _apply_scale(f: float, recenter: bool) -> void:
 	var old_logical := Vector2(size) / _f - Vector2(SHADOW, SHADOW) * 2.0 if _opened and size.x > 0 and not recenter else BASE_SIZE
 	_f = f
 	content_scale_factor = f
+	if thumbs:
+		thumbs.set_display_scale(f)
 	var usable := Rect2(DisplayServer.screen_get_usable_rect(_screen if _screen >= 0 else 0))
 	var max_sz := Vector2i(usable.size * 0.96)
 	min_size = Vector2i(mini(_phys(MIN_SIZE).x, max_sz.x), mini(_phys(MIN_SIZE).y, max_sz.y))
@@ -267,6 +271,7 @@ func _build() -> void:
 	_overlay.add_child(toast)
 
 	thumbs = Thumbs.new()
+	thumbs.set_display_scale(_f)
 	add_child(thumbs)
 	_update_mood(false)
 	_refresh_outfit()
@@ -335,7 +340,8 @@ func _build_left() -> VBoxContainer:
 	_sv.transparent_bg = true
 	_sv.own_world_3d = true
 	_sv.msaa_3d = Viewport.MSAA_4X
-	_sv.scaling_3d_scale = 1.5
+	_sv.msaa_2d = Viewport.MSAA_4X  # bulle / emotions dessinees dans l'apercu
+	_sv.scaling_3d_scale = 2.0
 	_sv.size = Vector2i(300, 360)
 	_sv.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	_preview_card.add_child(_sv)
@@ -879,6 +885,7 @@ func _detail_thumb(row: Control, kind: String, id: String, tint: Color, icon_nam
 	var tr := TextureRect.new()
 	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	tr.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	tile.add_child(tr)
 	_request_thumb(kind, id, tr.set_texture)
 
@@ -1066,7 +1073,7 @@ func _ask_buy_item(slot: String, id: String) -> void:
 	var price := int(item["price"])
 	if GameState.owned.has(id) or GameState.coins < price:
 		return
-	var tex = Thumbs.cache.get(Thumbs.key_for("item", id))
+	var tex = Thumbs.best("item", id)
 	_ask("Acheter « %s » ?" % item["name"], "%s pourra le porter tout de suite. Tu gardes les couleurs que tu as choisies." % GameState.pet_name,
 		"Acheter", tex if tex else SLOT_ICONS[slot], price, func():
 			if GameState.buy(id):
@@ -1354,7 +1361,7 @@ func _ask_buy_look(section: String, id: String) -> void:
 		return
 	var nm := _look_name(section, id)
 	var what: String = {"mat": "cette matière", "eye": "ces yeux", "mouth": "cette bouche"}.get(section, "ce look")
-	var tex = Thumbs.cache.get(Thumbs.key_for(THUMB_KIND[section], id))
+	var tex = Thumbs.best(THUMB_KIND[section], id)
 	var on_ok := func():
 		if GameState.buy_look("%s:%s" % [section, id]):
 			GameState.set_look(section, id)
@@ -1955,6 +1962,7 @@ func _build_settings_page() -> Control:
 
 	var g3 := _group(col, "Système", "gear", "", UITheme.MINT)
 	_setting_row(g3, "Lancer au démarrage", "Pompom démarre en même temps que Windows.", _toggle_setting("autostart"))
+	_setting_row(g3, "Mises à jour automatiques", "Il vérifie les nouvelles versions sur GitHub et te propose de mettre à jour (jamais sans ton accord).", _toggle_setting("auto_update"))
 	var reset := Button.new()
 	reset.text = "Replacer"
 	reset.custom_minimum_size = Vector2(120, 40)
@@ -2203,18 +2211,18 @@ class Logo extends Control:
 	func _draw() -> void:
 		var c := size * 0.5
 		var r := 18.0
-		draw_circle(c + Vector2(0, 2), r, Color(UITheme.ACCENT_DARK, 0.25))
-		draw_circle(c, r, UITheme.ACCENT)
-		draw_circle(c + Vector2(-11, -12), 5.5, UITheme.ACCENT)
-		draw_circle(c + Vector2(11, -12), 5.5, UITheme.ACCENT)
-		draw_circle(c + Vector2(-6, 1), 2.6, UITheme.INK)
-		draw_circle(c + Vector2(6, 1), 2.6, UITheme.INK)
-		draw_circle(c + Vector2(-5.2, 0.2), 0.9, Color.WHITE)
-		draw_circle(c + Vector2(6.8, 0.2), 0.9, Color.WHITE)
+		draw_circle(c + Vector2(0, 2), r, Color(UITheme.ACCENT_DARK, 0.25), true, -1.0, true)
+		draw_circle(c, r, UITheme.ACCENT, true, -1.0, true)
+		draw_circle(c + Vector2(-11, -12), 5.5, UITheme.ACCENT, true, -1.0, true)
+		draw_circle(c + Vector2(11, -12), 5.5, UITheme.ACCENT, true, -1.0, true)
+		draw_circle(c + Vector2(-6, 1), 2.6, UITheme.INK, true, -1.0, true)
+		draw_circle(c + Vector2(6, 1), 2.6, UITheme.INK, true, -1.0, true)
+		draw_circle(c + Vector2(-5.2, 0.2), 0.9, Color.WHITE, true, -1.0, true)
+		draw_circle(c + Vector2(6.8, 0.2), 0.9, Color.WHITE, true, -1.0, true)
 		draw_arc(c + Vector2(0, 4), 3.0, PI * 0.2, PI * 0.8, 8, UITheme.INK, 1.6, true)
-		draw_circle(c + Vector2(-10, 6), 2.8, Color(1, 1, 1, 0.35))
-		draw_circle(c + Vector2(10, 6), 2.8, Color(1, 1, 1, 0.35))
-		draw_circle(c + Vector2(-7, -9), 3.0, Color(1, 1, 1, 0.4))
+		draw_circle(c + Vector2(-10, 6), 2.8, Color(1, 1, 1, 0.35), true, -1.0, true)
+		draw_circle(c + Vector2(10, 6), 2.8, Color(1, 1, 1, 0.35), true, -1.0, true)
+		draw_circle(c + Vector2(-7, -9), 3.0, Color(1, 1, 1, 0.4), true, -1.0, true)
 
 
 ## Bouton rond de la barre de titre (reduire / fermer) et de l'apercu.
@@ -2246,9 +2254,9 @@ class WinBtn extends Button:
 		var c := size * 0.5
 		var r := minf(size.x, size.y) * 0.5
 		if solid_bg:
-			draw_circle(c + Vector2(0, 1.5), r, Color(0.3, 0.1, 0.25, 0.12))
-			draw_circle(c, r, Color(1, 1, 1, 0.92))
-		draw_circle(c, r, Color(tint.lerp(Color.WHITE, 0.82), _h))
+			draw_circle(c + Vector2(0, 1.5), r, Color(0.3, 0.1, 0.25, 0.12), true, -1.0, true)
+			draw_circle(c, r, Color(1, 1, 1, 0.92), true, -1.0, true)
+		draw_circle(c, r, Color(tint.lerp(Color.WHITE, 0.82), _h), true, -1.0, true)
 		var col := UITheme.MUTED.lerp(tint.darkened(0.1), _h)
 		UIIcons.draw(self, icon_name, Rect2(c - Vector2(9, 9), Vector2(18, 18)), col, 1.0)
 
@@ -2270,8 +2278,8 @@ class PreviewCard extends Control:
 		for p in pts:
 			cols.append(top.lerp(bot, clampf(p.y / size.y, 0.0, 1.0)))
 		draw_polygon(pts, cols)
-		draw_circle(Vector2(size.x * 0.5, size.y * 0.52), minf(size.x, size.y) * 0.36, Color(1, 1, 1, 0.35))
-		draw_circle(Vector2(size.x * 0.5, size.y * 0.52), minf(size.x, size.y) * 0.26, Color(1, 1, 1, 0.25))
+		draw_circle(Vector2(size.x * 0.5, size.y * 0.52), minf(size.x, size.y) * 0.36, Color(1, 1, 1, 0.35), true, -1.0, true)
+		draw_circle(Vector2(size.x * 0.5, size.y * 0.52), minf(size.x, size.y) * 0.26, Color(1, 1, 1, 0.25), true, -1.0, true)
 		for s in [[0.16, 0.18, 3.0], [0.84, 0.3, 2.2], [0.2, 0.64, 2.0], [0.8, 0.72, 3.0]]:
 			UIIcons.draw(self, "sparkle", Rect2(Vector2(size.x * s[0], size.y * s[1]) - Vector2(s[2], s[2]) * 2.5, Vector2(s[2], s[2]) * 5.0),
 				Color(1, 1, 1, 0.9), 1.0)
@@ -2307,6 +2315,7 @@ class OutfitChip extends Button:
 	func _init(p_slot: String) -> void:
 		slot = p_slot
 		custom_minimum_size = Vector2(48, 48)
+		texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 		focus_mode = Control.FOCUS_NONE
 		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		UIKit.clear_styles(self)
@@ -2361,11 +2370,11 @@ class LevelBadge extends Control:
 		var sh := PackedVector2Array()
 		for p in pts:
 			sh.append(p + Vector2(0, r * 0.06))
-		draw_colored_polygon(sh, Color(UITheme.GOLD_DARK, 0.35))
-		draw_colored_polygon(pts, UITheme.GOLD)
-		draw_circle(c, r * 0.72, UITheme.GOLD.lightened(0.3))
+		UIIcons.fill_aa(self, sh, Color(UITheme.GOLD_DARK, 0.35))
+		UIIcons.fill_aa(self, pts, UITheme.GOLD)
+		draw_circle(c, r * 0.72, UITheme.GOLD.lightened(0.3), true, -1.0, true)
 		draw_arc(c, r * 0.72, 0, TAU, 40, Color(UITheme.GOLD_DARK, 0.45), maxf(1.0, r * 0.06), true)
-		draw_circle(c + Vector2(-r * 0.3, -r * 0.32), r * 0.12, Color(1, 1, 1, 0.6))
+		draw_circle(c + Vector2(-r * 0.3, -r * 0.32), r * 0.12, Color(1, 1, 1, 0.6), true, -1.0, true)
 		var f := UITheme.font(700)
 		var fs := int(r * (0.86 if level < 10 else 0.7))
 		var t := str(level)
@@ -2389,7 +2398,7 @@ class FoodPref extends Control:
 			var w := 18.0
 			var x0 := size.x * 0.5 - (pref - 1) * w * 0.5
 			for i in pref:
-				draw_colored_polygon(UIIcons.heart_points(Vector2(x0 + i * w, 11), 8.0), UITheme.ACCENT)
+				UIIcons.fill_aa(self, UIIcons.heart_points(Vector2(x0 + i * w, 11), 8.0), UITheme.ACCENT)
 		else:
 			UIIcons.draw(self, "pref_%d" % pref, Rect2(size.x * 0.5 - 9, 2, 18, 18), col, 1.0)
 		var f := UITheme.font(650)

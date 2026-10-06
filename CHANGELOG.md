@@ -3,6 +3,15 @@
 Toutes les versions de Pompom. Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/)
 et les numéros suivent [SemVer](https://semver.org/lang/fr/).
 
+## [0.2.1-beta] - 2026-10-06
+
+### Interface plus nette
+- Boutique, menu et bulles nets sur les écrans en haute résolution (1440p, 4K, mise à l'échelle 125 à 150 %) :
+  - icônes et formes lissées (anticrénelage) ;
+  - miniatures 3D rendues en double résolution ;
+  - aperçu 3D suréchantillonné.
+- Nouveau réglage « Mises à jour automatiques ».
+
 ## [0.2.0-beta] - 2026-10-06
 
 ### Il ne gêne plus jamais (en jeu, en visio)

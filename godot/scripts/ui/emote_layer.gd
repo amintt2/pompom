@@ -170,9 +170,9 @@ func _draw_bubble(anchor: Vector2, text: String, a: float, s: float) -> Rect2:
 	draw_style_box(box, rect)
 	# queue de la bulle : contour puis remplissage qui masque le bord de la boite
 	var tw := 7.5 * s
-	draw_colored_polygon(PackedVector2Array([Vector2(tail_x - tw - bw, y + h - bw), Vector2(tail_x + tw + bw, y + h - bw),
+	UIIcons.fill_aa(self, PackedVector2Array([Vector2(tail_x - tw - bw, y + h - bw), Vector2(tail_x + tw + bw, y + h - bw),
 		tip + Vector2(0, bw * 1.2)]), border)
-	draw_colored_polygon(PackedVector2Array([Vector2(tail_x - tw, y + h - bw * 1.6), Vector2(tail_x + tw, y + h - bw * 1.6), tip]),
+	UIIcons.fill_aa(self, PackedVector2Array([Vector2(tail_x - tw, y + h - bw * 1.6), Vector2(tail_x + tw, y + h - bw * 1.6), tip]),
 		Color(1, 1, 1, 0.98 * a))
 	draw_multiline_string(f, Vector2(x + 13 * s, y + 8 * s + f.get_ascent(fs)), text, HORIZONTAL_ALIGNMENT_CENTER,
 		w - 26 * s, fs, -1, Color(UITheme.INK, a))
@@ -180,9 +180,9 @@ func _draw_bubble(anchor: Vector2, text: String, a: float, s: float) -> Rect2:
 	return Rect2(x - 7 * s, y - 7 * s, w + 14 * s, h + 20 * s)
 
 func _draw_coin(c: Vector2, r: float, a: float) -> void:
-	draw_circle(c, r, Color(UITheme.GOLD.darkened(0.2), a))
-	draw_circle(c, r * 0.82, Color(UITheme.GOLD, a))
-	draw_circle(c + Vector2(-r * 0.3, -r * 0.3), r * 0.25, Color(1, 1, 1, 0.6 * a))
+	draw_circle(c, r, Color(UITheme.GOLD.darkened(0.2), a), true, -1.0, true)
+	draw_circle(c, r * 0.82, Color(UITheme.GOLD, a), true, -1.0, true)
+	draw_circle(c + Vector2(-r * 0.3, -r * 0.3), r * 0.25, Color(1, 1, 1, 0.6 * a), true, -1.0, true)
 
 
 func _heart_points(c: Vector2, sz: float) -> PackedVector2Array:
@@ -198,15 +198,15 @@ func _heart_points(c: Vector2, sz: float) -> PackedVector2Array:
 func _draw_icon(kind: String, pos: Vector2, sz: float, a: float, rot: float) -> void:
 	match kind:
 		"heart":
-			draw_colored_polygon(_heart_points(pos, sz), Color(1.0, 0.35, 0.55, a))
-			draw_circle(pos + Vector2(-sz * 0.35, -sz * 0.3), sz * 0.18, Color(1, 1, 1, 0.55 * a))
+			UIIcons.fill_aa(self, _heart_points(pos, sz), Color(1.0, 0.35, 0.55, a))
+			draw_circle(pos + Vector2(-sz * 0.35, -sz * 0.3), sz * 0.18, Color(1, 1, 1, 0.55 * a), true, -1.0, true)
 		"zzz":
 			draw_string(UITheme.font(650), pos, "z", HORIZONTAL_ALIGNMENT_LEFT, -1, int(sz * 1.6), Color(0.45, 0.5, 0.85, a))
 		"note":
 			var col := Color(0.55, 0.45, 0.95, a)
-			draw_circle(pos, sz * 0.38, col)
-			draw_line(pos + Vector2(sz * 0.33, 0), pos + Vector2(sz * 0.33, -sz * 1.1), col, maxf(2.0, sz * 0.15))
-			draw_line(pos + Vector2(sz * 0.33, -sz * 1.1), pos + Vector2(sz * 0.8, -sz * 0.8), col, maxf(2.0, sz * 0.15))
+			draw_circle(pos, sz * 0.38, col, true, -1.0, true)
+			draw_line(pos + Vector2(sz * 0.33, 0), pos + Vector2(sz * 0.33, -sz * 1.1), col, maxf(2.0, sz * 0.15), true)
+			draw_line(pos + Vector2(sz * 0.33, -sz * 1.1), pos + Vector2(sz * 0.8, -sz * 0.8), col, maxf(2.0, sz * 0.15), true)
 		"sparkle", "star":
 			var col2 := Color(1.0, 0.82, 0.25, a)
 			var pts := PackedVector2Array()
@@ -214,7 +214,7 @@ func _draw_icon(kind: String, pos: Vector2, sz: float, a: float, rot: float) -> 
 				var ang := rot + PI * i / 4.0
 				var r := sz if i % 2 == 0 else sz * 0.32
 				pts.append(pos + Vector2(cos(ang), sin(ang)) * r)
-			draw_colored_polygon(pts, col2)
+			UIIcons.fill_aa(self, pts, col2)
 		"anger":
 			var col3 := Color(0.93, 0.25, 0.3, a)
 			for i in 4:
@@ -227,6 +227,6 @@ func _draw_icon(kind: String, pos: Vector2, sz: float, a: float, rot: float) -> 
 			draw_string(UITheme.font(650), pos, "?", HORIZONTAL_ALIGNMENT_LEFT, -1, int(sz * 2.0), Color(0.45, 0.55, 0.95, a))
 		"sweat":
 			var col4 := Color(0.45, 0.75, 1.0, a)
-			draw_circle(pos, sz * 0.45, col4)
-			draw_colored_polygon(PackedVector2Array([pos + Vector2(-sz * 0.42, -sz * 0.1), pos + Vector2(sz * 0.42, -sz * 0.1),
+			draw_circle(pos, sz * 0.45, col4, true, -1.0, true)
+			UIIcons.fill_aa(self, PackedVector2Array([pos + Vector2(-sz * 0.42, -sz * 0.1), pos + Vector2(sz * 0.42, -sz * 0.1),
 				pos + Vector2(0, -sz * 1.05)]), col4)

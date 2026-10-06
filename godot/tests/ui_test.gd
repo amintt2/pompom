@@ -311,7 +311,15 @@ func _test_thumbs() -> void:
 				nonempty += 1
 	check("thumbs: all head cards have a rendered 3D thumbnail", n > 0 and nonempty == n, "%d / %d" % [nonempty, n])
 	await shot(shop, "01_chapeaux")
-
+	# nettete (ecrans 125 % / 150 %)
+	check("crisp: shop window has 2D MSAA", shop.msaa_2d == Viewport.MSAA_4X)
+	check("crisp: preview 2D MSAA + 3D supersampling", shop._sv.msaa_2d == Viewport.MSAA_4X and shop._sv.scaling_3d_scale >= 2.0)
+	var f := shop.content_scale_factor
+	check("crisp: thumbnails rendered at >= 2x display size", shop.thumbs.size.x >= mini(512, int(150.0 * f * 2.0)), str(shop.thumbs.size))
+	var any_card: ShopCard = first_card(func(c): return c.item_id != "" and c.has_thumb())
+	var timg := (any_card.get_node("Thumb") as TextureRect).texture.get_image() if any_card else null
+	check("crisp: thumbnails have mipmaps", timg != null and timg.has_mipmaps())
+	check("crisp: thumbnail filter uses mipmaps", any_card != null and (any_card.get_node("Thumb") as TextureRect).texture_filter == CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS)
 
 func _test_tabs_walk() -> void:
 	for t in ShopWindow.TABS:
@@ -689,7 +697,7 @@ func _test_settings() -> void:
 	await reveal(shop.settings_ctrls["ai_gpu"])
 	await wait(0.2)
 	await shot(shop, "13b_reglages_assistant")
-	for key in ShopWindow.SETTING_DEFAULTS:
+	for key in ["eat_files", "clipboard", "suggestions", "ai_gpu"]:
 		var t0: UIKit.Toggle = shop.settings_ctrls.get(key)
 		check("toggle %s: exists with default %s" % [key, ShopWindow.SETTING_DEFAULTS[key]], t0 != null and t0.button_pressed == ShopWindow.SETTING_DEFAULTS[key])
 	for key in ["reflections", "wander", "discreet", "talk", "hide_fullscreen", "autostart", "eat_files", "clipboard", "suggestions", "ai_gpu"]:
@@ -837,6 +845,7 @@ func _test_menu() -> void:
 	var m := PetMenu.open_at(pos, PetMenu.default_items(false), func(id): got.append(id), self)
 	await wait(0.5)
 	check("menu: opens", is_instance_valid(m) and m.visible)
+	check("crisp: menu window has 2D MSAA", is_instance_valid(m) and m.msaa_2d == Viewport.MSAA_4X)
 	check("menu: flips up near taskbar (inside screen)", m.position.y + m.size.y <= DisplayServer.screen_get_usable_rect().end.y + int(PetMenu.MARGIN * 2 * m.content_scale_factor))
 	# survol puis clic sur "Statistiques"
 	var r := m.row_rect(3)

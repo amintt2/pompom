@@ -74,6 +74,7 @@ func _init() -> void:
 	unresizable = true  # transient (au-dessus de sa fenetre parente) : pas de 'always_on_top', interdit par Windows
 	wrap_controls = false
 	theme = UITheme.theme()
+	msaa_2d = Viewport.MSAA_4X  # (le MSAA 2D du projet ne vaut que pour la fenetre principale)
 	popup_hide.connect(_on_hide)
 
 
@@ -305,12 +306,12 @@ class Body extends Control:
 				cols.append(fur.lerp(Color.WHITE, 0.80).lerp(UITheme.LAVENDER_SOFT, clampf((p.x - hr.position.x) / hr.size.x, 0.0, 1.0) * 0.6))
 			draw_polygon(pts, cols)
 			var ac := hr.position + Vector2(28, hr.size.y * 0.5)
-			draw_circle(ac + Vector2(0, 1.5), 18, Color(fur.darkened(0.4), 0.25))
-			draw_circle(ac, 18, fur)
-			draw_circle(ac + Vector2(-5.5, -1), 2.4, UITheme.INK)
-			draw_circle(ac + Vector2(5.5, -1), 2.4, UITheme.INK)
+			draw_circle(ac + Vector2(0, 1.5), 18, Color(fur.darkened(0.4), 0.25), true, -1.0, true)
+			draw_circle(ac, 18, fur, true, -1.0, true)
+			draw_circle(ac + Vector2(-5.5, -1), 2.4, UITheme.INK, true, -1.0, true)
+			draw_circle(ac + Vector2(5.5, -1), 2.4, UITheme.INK, true, -1.0, true)
 			draw_arc(ac + Vector2(0, 3), 3.2, PI * 0.2, PI * 0.8, 8, UITheme.INK, 1.5, true)
-			draw_circle(ac + Vector2(-6, -7), 3.0, Color(1, 1, 1, 0.45))
+			draw_circle(ac + Vector2(-6, -7), 3.0, Color(1, 1, 1, 0.45), true, -1.0, true)
 			var title: String = menu.opts.get("title", GameState.pet_name)
 			var nx := ac.x + 28
 			draw_string(f, Vector2(nx, hr.position.y + 25), title, HORIZONTAL_ALIGNMENT_LEFT, 120, 17, UITheme.INK)
@@ -344,7 +345,7 @@ class Body extends Control:
 			var on := i == hover
 			var ic := r.position + Vector2(20, r.size.y * 0.5)
 			var rad := 14.0 + (1.0 if on else 0.0)
-			draw_circle(ic, rad, tint if on else tint.lerp(Color.WHITE, 0.80))
+			draw_circle(ic, rad, tint if on else tint.lerp(Color.WHITE, 0.80), true, -1.0, true)
 			UIIcons.draw(self, str(it.get("icon", "")), Rect2(ic - Vector2(9, 9), Vector2(18, 18)),
 				Color.WHITE if on else tint.darkened(0.15), 1.0)
 			var col := UITheme.FAINT if dis else (UITheme.BAD if danger2 else (UITheme.ACCENT_DARK if on else UITheme.INK))
