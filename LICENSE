@@ -24,4 +24,4 @@ SOFTWARE.
 
 Third-party assets keep their own licences:
 - Fredoka font (godot/assets/fonts/Fredoka.ttf): SIL Open Font License 1.1 (see godot/assets/fonts/OFL.txt).
-- Godot Engine: MIT. llama.cpp: MIT. Local AI models: see assistant/README.md.
+- Godot Engine: MIT. stuntd and the Laya encoder: Apache-2.0 (see assistant/README.md).

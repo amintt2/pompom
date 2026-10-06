@@ -75,7 +75,7 @@ travaille avec toi, joue avec toi… et mange tes vieux fichiers.
   - S'il la porte trop longtemps, il fatigue…
 - **Suggestions intelligentes** (bêta, désactivées par défaut) : quand tu cliques dans un champ (email, adresse, recherche…), il propose le bon texte copié.
   - Clique sur lui pour le copier, puis Ctrl+V.
-  - Une petite IA locale décide : [llama.cpp](https://github.com/ggml-org/llama.cpp) avec Llama 3.2 1B, environ 55 ms sur la carte graphique, 97,8 % de bonnes suggestions sur nos tests.
+  - Ce n'est pas une IA qui parle : c'est un **modèle de décision** local, [stuntd](https://github.com/bladedevoff/stuntd), avec l'encodeur open source [Laya](https://huggingface.co/convaiinnovations/laya) (Apache-2.0). De petites « têtes » entraînées choisissent parmi des options en quelques dizaines de millisecondes.
   - Il ne lit jamais ce que tu tapes, et jamais les champs de mot de passe.
   - Installation : `powershell -ExecutionPolicy Bypass -File assistant/setup.ps1` (voir [assistant/README.md](assistant/README.md)), puis active « Suggestions » dans les réglages.
 
@@ -170,7 +170,7 @@ pompom/
 │  ├─ data/                Ancrages des espèces, accessoires, visages, rig studio
 │  └─ tests/               Tests automatiques (boutique, presse-papiers, mises à jour)
 ├─ blender/                Scripts Blender (modèles, accessoires, visages, rendus de référence)
-├─ assistant/              Service d'IA locale (llama.cpp)
+├─ assistant/              Service de décision locale (stuntd + Laya)
 ├─ docs/                   Images, idées et design
 └─ .github/workflows/      CI et publication des Releases
 ```
@@ -195,7 +195,7 @@ issus de ces rendus sont ensuite rejoués en temps réel dans Godot.
 
 ## 🗺️ Feuille de route
 
-- Suggestions IA locales (llama.cpp) dans le champ où tu écris
+- Décisions en jeu par le même moteur stuntd (moins de 60 ms)
 - Vraie boîte aux lettres pendant les jeux, placement intelligent hors de l'interface du jeu
 - Réactions à la musique, rituels de la journée, fêtes (Halloween !)
 - Version mobile (Android / iOS)
@@ -206,7 +206,7 @@ Toutes les idées : [docs/idees_interactivite.md](docs/idees_interactivite.md).
 
 - Moteur : [Godot Engine](https://godotengine.org) (MIT). Modélisation et rendus : [Blender](https://www.blender.org) / Cycles.
 - Police : [Fredoka](https://fonts.google.com/specimen/Fredoka) (SIL OFL 1.1).
-- IA locale : [llama.cpp](https://github.com/ggml-org/llama.cpp) (MIT). **Built with Llama** : le modèle par défaut est Llama 3.2 1B Instruct, sous [Llama 3.2 Community License](https://www.llama.com/llama3_2/license/) (non inclus dans ce dépôt, téléchargé par `assistant/setup.ps1`). Une alternative sous Apache-2.0 (Qwen2.5 0.5B) est disponible avec `setup.ps1 -Light`.
+- Décisions locales : [stuntd](https://github.com/bladedevoff/stuntd) et l'encodeur [Laya](https://huggingface.co/convaiinnovations/laya) de Convai Innovations (Apache-2.0).
 - Développé avec l'aide de [Claude Code](https://claude.com/claude-code).
 
 Licence : [MIT](LICENSE).
