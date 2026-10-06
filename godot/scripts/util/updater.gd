@@ -1,7 +1,9 @@
 class_name Updater
 extends Node
 ## Mises a jour automatiques depuis les Releases GitHub.
-## - verifie au demarrage puis toutes les 6 h (reglage "auto_update")
+## - sonde toutes les 10 min si la version suivante est deja telechargeable (lien direct, sans attendre
+##   l'API GitHub qui peut avoir du retard), et interroge l'API toutes les 3 h (reglage "auto_update")
+## - verification manuelle : check_now() (menu "Chercher une mise a jour")
 ## - previent quand une version plus recente existe (signal update_available)
 ## - n'installe QUE si l'utilisateur le demande : telecharge Pompom.exe + SHA256SUMS.txt,
 ##   verifie l'empreinte SHA-256, puis un petit script remplace l'exe et relance le jeu.
@@ -9,16 +11,20 @@ extends Node
 signal update_available(version: String, notes: String)
 signal update_progress(text: String)
 signal update_failed(reason: String)
+signal check_finished(found: bool)
 
 const REPO := "amintt2/pompom"
 const API := "https://api.github.com/repos/%s/releases?per_page=10" % REPO
 const RELEASES_PAGE := "https://github.com/%s/releases" % REPO
 const ASSET_EXE := "Pompom.exe"
 const ASSET_SUMS := "SHA256SUMS.txt"
-const CHECK_EVERY := 6.0 * 3600.0
+const DOWNLOAD := "https://github.com/%s/releases/download/v%s/%s"
+const PROBE_EVERY := 10.0 * 60.0
+const API_EVERY := 3.0 * 3600.0
 
 var latest := {}  # {version, notes, exe_url, sums_url}
-var _timer := 20.0
+var _api_timer := 20.0
+var _probe_timer := 20.0 + PROBE_EVERY
 var _busy := false
 
 
@@ -61,18 +67,100 @@ static func _parse(v: String) -> Array:
 	return out
 
 
+## Versions qui pourraient suivre `v` (de la plus proche a la plus lointaine).
+static func next_candidates(v: String) -> PackedStringArray:
+	var p := _parse(v)
+	var x: int = p[0]
+	var y: int = p[1]
+	var z: int = p[2]
+	var pre: String = p[3]
+	var out := PackedStringArray()
+	if pre != "":
+		out.append("%d.%d.%d" % [x, y, z])
+	for base in ["%d.%d.%d" % [x, y, z + 1], "%d.%d.0" % [x, y + 1], "%d.0.0" % [x + 1]]:
+		if pre != "":
+			out.append("%s-%s" % [base, pre])
+		out.append(base)
+	return out
+
+
 func _process(delta: float) -> void:
 	if not bool(GameState.settings.get("auto_update", true)) or _busy:
 		return
-	_timer -= delta
-	if _timer <= 0.0:
-		_timer = CHECK_EVERY
+	_api_timer -= delta
+	_probe_timer -= delta
+	if _api_timer <= 0.0:
+		_api_timer = API_EVERY
+		_probe_timer = PROBE_EVERY
 		check()
+	elif _probe_timer <= 0.0:
+		_probe_timer = PROBE_EVERY
+		probe()
 
 
-func check() -> void:
+## Verification immediate demandee par l'utilisateur : sonde directe puis API. Emet check_finished.
+func check_now() -> void:
 	if _busy:
 		return
+	var found := await probe()
+	if not found:
+		found = await check()
+	check_finished.emit(found or not latest.is_empty())
+
+
+## Sonde directe : la version suivante a-t-elle deja ses fichiers en ligne ? (des que la Release est publiee)
+func probe() -> bool:
+	if _busy:
+		return false
+	_busy = true
+	var base := current_version()
+	if not latest.is_empty() and compare(latest["version"], base) > 0:
+		base = latest["version"]
+	var found := ""
+	for _i in 6:  # plusieurs versions d'avance possibles
+		var hit := ""
+		for c in next_candidates(base):
+			var has_sums: bool = await _exists(DOWNLOAD % [REPO, c, ASSET_SUMS])
+			if not has_sums:
+				continue
+			var has_exe: bool = await _exists(DOWNLOAD % [REPO, c, ASSET_EXE])
+			if has_exe:
+				hit = c
+				break
+		if hit == "":
+			break
+		found = hit
+		base = hit
+	_busy = false
+	if found == "" or compare(found, current_version()) <= 0:
+		return false
+	if not latest.is_empty() and compare(found, latest["version"]) <= 0:
+		return false
+	latest = {"version": found, "notes": "", "exe_url": DOWNLOAD % [REPO, found, ASSET_EXE],
+		"sums_url": DOWNLOAD % [REPO, found, ASSET_SUMS]}
+	update_available.emit(found, "")
+	return true
+
+
+func _exists(url: String) -> bool:
+	var req := HTTPRequest.new()
+	req.use_threads = true
+	req.timeout = 10.0
+	req.max_redirects = 0  # GitHub repond 302 (fichier present) ou 404 (absent) : pas besoin de suivre
+	add_child(req)
+	if req.request(url, ["User-Agent: Pompom-updater"], HTTPClient.METHOD_HEAD) != OK:
+		req.queue_free()
+		return false
+	var res: Array = await req.request_completed
+	req.queue_free()
+	var code := int(res[1])
+	return code == 200 or code == 302
+
+
+## Interroge l'API GitHub (liste des Releases, avec les notes). Renvoie true si une nouvelle version est annoncee.
+func check() -> bool:
+	if _busy:
+		return false
 	_busy = true
 	var req := HTTPRequest.new()
 	req.use_threads = true
@@ -82,15 +170,15 @@ func check() -> void:
 	if err != OK:
 		_busy = false
 		req.queue_free()
-		return
+		return false
 	var res: Array = await req.request_completed
 	req.queue_free()
 	_busy = false
 	if int(res[1]) != 200:
-		return
+		return false
 	var data = JSON.parse_string((res[3] as PackedByteArray).get_string_from_utf8())
 	if typeof(data) != TYPE_ARRAY:
-		return
+		return false
 	var best := {}
 	for rel in data:
 		if typeof(rel) != TYPE_DICTIONARY or rel.get("draft", false):
@@ -109,9 +197,14 @@ func check() -> void:
 		if best.is_empty() or compare(ver, best["version"]) > 0:
 			best = {"version": ver, "notes": str(rel.get("body", "")), "exe_url": exe_url, "sums_url": sums_url}
 	if best.is_empty() or compare(best["version"], current_version()) <= 0:
-		return
-	latest = best
-	update_available.emit(best["version"], best["notes"])
+		return false
+	if not latest.is_empty() and compare(best["version"], latest["version"]) < 0:
+		return false
+	var fresh := latest.is_empty() or compare(best["version"], latest["version"]) > 0
+	latest = best  # (memes fichiers ; l'API apporte en plus les notes de version)
+	if fresh:
+		update_available.emit(best["version"], best["notes"])
+	return fresh
 
 
 ## Telecharge, verifie et installe la derniere version (a appeler apres accord de l'utilisateur).

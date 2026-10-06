@@ -1427,7 +1427,28 @@ func _menu_items() -> Array:
 	if updater and not updater.latest.is_empty():
 		items.insert(0, {"id": 12, "label": "Mettre à jour (v%s)" % updater.latest["version"], "icon": "sparkle",
 			"tint": UITheme.GOOD, "hint": "Nouveau !"})
+	else:
+		for i in items.size():
+			if int(items[i].get("id", -1)) == 7:
+				items.insert(i + 1, {"id": 13, "label": "Chercher une mise à jour", "icon": "sparkle", "tint": UITheme.SKY,
+					"hint": "v" + Updater.current_version()})
+				break
 	return items
+
+
+## Verification manuelle des mises a jour (menu ou reglages) : il repond dans une bulle.
+func check_updates_now() -> void:
+	if updater == null:
+		return
+	if not updater.latest.is_empty():
+		_say("La version %s est prête ! Clic droit sur moi → Mettre à jour." % updater.latest["version"])
+		return
+	_say("Je regarde s'il y a du nouveau…")
+	pet.act_look_around()
+	updater.check_now()
+	var found: bool = await updater.check_finished
+	if not found:
+		_say("Tu as déjà la toute dernière version (v%s) !" % Updater.current_version())
 
 
 func _on_menu(id: int) -> void:
@@ -1459,6 +1480,7 @@ func _on_menu(id: int) -> void:
 			GameState.change_fun(3.0)
 		11: open_shop("look")
 		12: updater.install()
+		13: check_updates_now()
 		9: quit()
 
 

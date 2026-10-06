@@ -1990,6 +1990,16 @@ func _build_settings_page() -> Control:
 	var g3 := _group(col, "Système", "gear", "", UITheme.MINT)
 	_setting_row(g3, "Lancer au démarrage", "Pompom démarre en même temps que Windows.", _toggle_setting("autostart"))
 	_setting_row(g3, "Mises à jour automatiques", "Il vérifie les nouvelles versions sur GitHub et te propose de mettre à jour (jamais sans ton accord).", _toggle_setting("auto_update"))
+	var upd := Button.new()
+	upd.text = "Vérifier"
+	upd.custom_minimum_size = Vector2(120, 40)
+	upd.pressed.connect(func():
+		var host := get_parent()
+		if host and host.has_method("check_updates_now"):
+			host.call("check_updates_now")
+		toast.show_msg("Je cherche une nouvelle version…", "sparkle", UITheme.SKY))
+	settings_ctrls["check_update"] = upd
+	_setting_row(g3, "Version %s" % Updater.current_version(), "Chercher tout de suite une nouvelle version (sinon il vérifie tout seul toutes les 10 minutes).", upd)
 	var reset := Button.new()
 	reset.text = "Replacer"
 	reset.custom_minimum_size = Vector2(120, 40)

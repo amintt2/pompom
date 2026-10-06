@@ -3,6 +3,13 @@
 Toutes les versions de Pompom. Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/)
 et les numéros suivent [SemVer](https://semver.org/lang/fr/).
 
+## [0.2.3-beta] - 2026-10-06
+
+### Mises à jour plus rapides
+- Il vérifie **toutes les 10 minutes** si la version suivante est déjà téléchargeable (lien direct), au lieu d'attendre la liste de GitHub toutes les 6 h : une nouvelle version est proposée quelques minutes après sa sortie.
+- Nouveau : **« Chercher une mise à jour »** dans le menu (clic droit) et un bouton « Vérifier » dans Réglages → Système. Il te répond tout de suite.
+- Toujours rien d'installé sans ton accord, et chaque fichier est vérifié (empreinte SHA-256).
+
 ## [0.2.2-beta] - 2026-10-06
 
 ### Corrigé
