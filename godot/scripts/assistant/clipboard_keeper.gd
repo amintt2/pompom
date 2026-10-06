@@ -60,6 +60,10 @@ signal item_put_down(item: Dictionary)
 signal skipped(reason: String)
 
 const SETTING := "clipboard"
+## Captures d'ecran (Outil Capture d'ecran, Win+Maj+S, Impr. ecran) : gardees meme si le gardien general
+## est desactive (reglage "screenshots", actif par defaut). Seules les images de ces applis sont prises.
+const SHOT_SETTING := "screenshots"
+const SNIP_PROCS := ["snippingtool", "screenclippinghost", "screensketch", "snipandsketch", "shellexperiencehost"]
 const MAX_ITEMS := 5
 const POLL_INTERVAL := 0.33  # repli sans helper (3 Hz)
 const IMAGE_POLL_INTERVAL := 2.5  # repli sans helper : relecture complete d'une image (couteux)
@@ -89,6 +93,7 @@ var pet: Pet
 var layer: HeldItemsLayer
 
 var enabled := false
+var shots_only := false  # seul le mode "captures d'ecran" est actif
 var time_scale := 1.0  # tests : accelere la fatigue
 var ignore_own_focus := true  # ignore ce qui est copie pendant qu'une fenetre du jeu a le focus
 var accept_own_copies := false  # tests : accepte ce que le jeu met lui-meme dans le presse-papiers
@@ -163,7 +168,19 @@ func setup(p_stage: PetStage, p_emotes: Control = null, ui_parent: Node = null) 
 
 func _sync_setting() -> void:
 	talk = bool(GameState.settings.get("talk", true))
-	var want := bool(GameState.settings.get(SETTING, false))
+	var all_clip := bool(GameState.settings.get(SETTING, false))
+	var shots := bool(GameState.settings.get(SHOT_SETTING, true))
+	var want := all_clip or shots
+	var only := shots and not all_clip
+	if only != shots_only and enabled and want:
+		shots_only = only
+		if only:
+			# on passe en mode "captures seulement" : on oublie le reste (vie privee)
+			items = items.filter(func(it): return it.get("shot", false))
+			if layer:
+				layer.reset()
+		return
+	shots_only = only
 	if want == enabled:
 		return
 	if want:
@@ -347,8 +364,10 @@ func _poll_fallback() -> void:
 		_skip("focus")
 		return
 	if img_new and (t.strip_edges() == "" or _text_is_image_ref(t)):
-		ingest_image(img)
-	elif text_changed and t != "":
+		var it2 := ingest_image(img)
+		if shots_only and not it2.is_empty():
+			it2["shot"] = true
+	elif text_changed and t != "" and not shots_only:
 		ingest_text(t)
 
 
@@ -364,6 +383,19 @@ func _on_clip_event(d: Dictionary) -> void:
 		return
 	if bool(d.get("own", false)) and not accept_own_copies:
 		return
+	var from_snip := SNIP_PROCS.has(str(d.get("proc", "")).to_lower())
+	if shots_only and not (from_snip and bool(d.get("img", false))):
+		return  # mode captures : on ignore tout le reste
+	if from_snip and bool(d.get("img", false)):
+		var simg := DisplayServer.clipboard_get_image()
+		if simg and not simg.is_empty():
+			_last_img_sig = _image_sig(simg)
+			var it := ingest_image(simg)
+			if not it.is_empty():
+				it["shot"] = true
+				if talk and pet:
+					pet.say("Je garde ta capture ! Clique-moi pour la recopier.")
+			return
 	if bool(d.get("own", false)) and Time.get_ticks_msec() < _self_img_until:
 		return  # l'image (et son fichier) que nous venons nous-memes de remettre
 	if _own_window_focused():

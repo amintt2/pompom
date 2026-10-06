@@ -142,7 +142,11 @@ func _apply_settings() -> void:
 	get_viewport().scaling_3d_scale = float(GameState.settings.get("ssaa", 2.0))
 	stage.frame(Vector2(W, H), 100.0 * s, margin)
 	var refl := bool(GameState.settings.get("reflections", true))
-	win.exclude_from_capture = refl
+	# visible en partage d'ecran (par defaut) : la capture le voit, on l'efface par inpainting
+	var share := bool(GameState.settings.get("share_visible", true))
+	win.exclude_from_capture = refl and not share
+	capture.inpaint = share
+	capture.interval = 0.15 if share else 0.1
 	capture.enabled = refl
 	if not refl:
 		pet.set_env(PetAssets.studio_env(), Vector4(0, 0, 1, 1), Vector2(0.5, 0.5), 0.3, 0.8)
@@ -373,7 +377,8 @@ func _process(delta: float) -> void:
 	_cap_t -= delta
 	if _cap_t <= 0.0 and state != "hidden":
 		_cap_t = capture.interval
-		capture.capture(Rect2i(Vector2i(pos), Vector2i(W, H)), center, _pet_px(), pet)
+		var self_img: Image = get_viewport().get_texture().get_image() if capture.inpaint else null
+		capture.capture(Rect2i(Vector2i(pos), Vector2i(W, H)), center, _pet_px(), pet, self_img)
 
 
 func _input(event: InputEvent) -> void:

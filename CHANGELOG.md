@@ -3,6 +3,15 @@
 Toutes les versions de Pompom. Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/)
 et les numéros suivent [SemVer](https://semver.org/lang/fr/).
 
+## [0.1.1-beta] - 2026-10-06
+
+### Nouveau
+- **Visible en partage d'écran** : il apparaît maintenant dans tes partages d'écran (Discord, Teams, OBS…) et tes captures, tout en gardant ses reflets.
+  - Pour ne pas se refléter lui-même, il s'efface de sa propre capture et reconstruit le fond derrière lui (inpainting).
+  - Réglage « Visible en partage d'écran » : désactive-le pour des reflets parfaitement exacts, mais il sera alors invisible en partage.
+- **Il tient tes captures d'écran** : quand tu fais une capture (Outil Capture d'écran, Win+Maj+S), il la garde sur sa tête. Clique-le pour la recopier, glisse-la dehors pour la déposer.
+  - Activé par défaut, réglage « Tenir mes captures d'écran ». Seules les images de l'Outil Capture d'écran sont prises.
+
 ## [0.1.0-beta] - 2026-10-06
 
 Première bêta publique.

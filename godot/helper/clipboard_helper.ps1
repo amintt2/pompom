@@ -108,12 +108,15 @@ public static class PompomClip {
     bool txt = IsClipboardFormatAvailable(CF_UNICODETEXT) || IsClipboardFormatAvailable(CF_TEXT);
     bool img = IsClipboardFormatAvailable(CF_DIB) || IsClipboardFormatAvailable(CF_DIBV5) || IsClipboardFormatAvailable(CF_BITMAP)
       || (fPng != 0 && IsClipboardFormatAvailable(fPng));
+    string pname = "";
+    if (opid != 0) { try { pname = Process.GetProcessById((int)opid).ProcessName; } catch { } }
     int n = 0;
     var files = sens ? new List<string>() : Files(out n);
     var sb = new StringBuilder();
     sb.Append("{\"ev\":\"clip\",\"seq\":").Append(seq).Append(",\"init\":").Append(init ? "true" : "false")
       .Append(",\"sens\":").Append(sens ? "true" : "false").Append(",\"own\":").Append(own ? "true" : "false")
       .Append(",\"txt\":").Append(txt ? "true" : "false").Append(",\"img\":").Append(img ? "true" : "false")
+      .Append(",\"proc\":\"").Append(Esc(pname)).Append('"')
       .Append(",\"nfiles\":").Append(n).Append(",\"files\":[");
     for (int i = 0; i < files.Count; i++) { if (i > 0) sb.Append(','); sb.Append('"').Append(Esc(files[i])).Append('"'); }
     sb.Append("]}");

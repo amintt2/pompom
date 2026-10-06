@@ -43,7 +43,7 @@ var stats := {
 var settings := {
 	"size": 1.0, "hide_fullscreen": false, "discreet": true, "autostart": false,
 	"home_x": -1.0, "talk": true, "fur_quality": 16, "wander": true, "reflections": true, "ssaa": 2.0, "windows": true, "climb": true,
-	"eat_files": true, "eat_confirmed": false, "auto_update": true, "clipboard": false, "suggestions": false, "ai_gpu": true,
+	"eat_files": true, "eat_confirmed": false, "auto_update": true, "share_visible": true, "screenshots": true, "clipboard": false, "suggestions": false, "ai_gpu": true,
 }
 
 var no_save := false  # mode test

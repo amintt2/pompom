@@ -32,3 +32,10 @@ tmp_feed/
 Thumbs.db
 *.log
 godot/tests/ui_test_log.txt
+
+# Modele Laya et tetes stuntd (telecharges / entraines par assistant/setup.ps1)
+assistant/laya_model/
+assistant/heads/
+*.safetensors
+*.pt
+*.onnx

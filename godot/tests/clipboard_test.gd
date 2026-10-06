@@ -74,6 +74,7 @@ func _ready() -> void:
 	H = int(300 * sc)
 	GameState.no_save = true
 	GameState.settings["clipboard"] = false
+	GameState.settings["screenshots"] = false  # teste a part (section 10)
 	GameState.settings["talk"] = true
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(SHOTS))
 	var w := get_window()
@@ -479,6 +480,24 @@ func _run() -> void:
 	GameState.set_setting("clipboard", false)
 	await frames(3)
 	check(keeper.items.is_empty() and keeper.bounds() == Rect2() and not keeper._running, "desactiver : tout est oublie, helper arrete")
+
+	# ------------------------------------------------------------------ 10. captures d'ecran seulement
+	GameState.set_setting("screenshots", true)
+	await frames(3)
+	check(keeper.enabled and keeper.shots_only, "mode captures : actif seul, filtre")
+	var before := keeper.items.size()
+	keeper._on_clip_event({"seq": 9001, "proc": "notepad", "txt": true, "img": false, "files": []})
+	keeper._on_clip_event({"seq": 9002, "proc": "chrome", "txt": false, "img": true, "files": []})
+	await frames(3)
+	check(keeper.items.size() == before, "mode captures : textes et images d'autres applis ignores")
+	check(Data != null and keeper.SNIP_PROCS.has("snippingtool") and keeper.SNIP_PROCS.has("screenclippinghost"), "mode captures : Outil Capture d'ecran reconnu")
+	GameState.set_setting("clipboard", true)
+	await frames(3)
+	check(keeper.enabled and not keeper.shots_only, "gardien complet : prend le dessus")
+	GameState.set_setting("clipboard", false)
+	GameState.set_setting("screenshots", false)
+	await frames(3)
+	check(not keeper.enabled and keeper.items.is_empty(), "tout desactive : rien n'est garde")
 	_make_sheet()
 	_finish()
 

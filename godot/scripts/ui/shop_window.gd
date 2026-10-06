@@ -1935,7 +1935,8 @@ func _build_settings_page() -> Control:
 	_setting_row(g1, "Taille", "La taille de %s sur ton bureau." % GameState.pet_name, _seg_setting("size"))
 	_setting_row(g1, "Qualité de la fourrure", "Plus c'est beau, plus ça demande à ta carte graphique.", _seg_setting("fur_quality"))
 	_setting_row(g1, "Lissage des contours", "Des bords plus doux, sans escaliers.", _seg_setting("ssaa"))
-	_setting_row(g1, "Reflets de l'écran", "Il reflète ce qu'il y a autour de lui. Il n'apparaîtra pas sur tes captures d'écran.", _toggle_setting("reflections"), false)
+	_setting_row(g1, "Reflets de l'écran", "Il reflète et réfracte ce qu'il y a autour de lui.", _toggle_setting("reflections"))
+	_setting_row(g1, "Visible en partage d'écran", "Il apparaît dans tes partages d'écran et captures. Désactive pour des reflets parfaitement exacts (il sera alors invisible en partage).", _toggle_setting("share_visible"), false)
 
 	var g2 := _group(col, "Comportement", "heart", "", UITheme.LAVENDER)
 	_setting_row(g2, "Se promener", "Il se balade tout seul sur la barre des tâches.", _toggle_setting("wander"))
@@ -1946,7 +1947,8 @@ func _build_settings_page() -> Control:
 	_setting_row(g2, "Me nourrir avec des fichiers", "Glisse un fichier sur lui : il le mange et le fichier part dans la Corbeille.", _toggle_setting("eat_files"), false)
 
 	var g4 := _group(col, "Assistant", "bolt", "", UITheme.SKY)
-	_setting_row(g4, "Garder ce que je copie", "Il se souvient de ce que tu copies (presse-papiers) pour le retrouver facilement.", _toggle_setting("clipboard"))
+	_setting_row(g4, "Tenir mes captures d'écran", "Quand tu fais une capture (Outil Capture d'écran, Win+Maj+S), il la garde sur sa tête. Clique-le pour la recopier.", _toggle_setting("screenshots"))
+	_setting_row(g4, "Garder ce que je copie", "Il se souvient de tout ce que tu copies (presse-papiers) pour le retrouver facilement.", _toggle_setting("clipboard"))
 	_setting_row(g4, "Suggestions intelligentes", "Une IA locale lui donne des idées. Rien ne quitte ton PC.", _toggle_setting("suggestions"))
 	_setting_row(g4, "IA sur la carte graphique", "Plus rapide. Désactive-le si ton PC ralentit.", _toggle_setting("ai_gpu"), false)
 
@@ -2015,7 +2017,8 @@ func _option_index(key: String) -> int:
 
 
 ## Valeurs par defaut des reglages qui peuvent manquer dans une vieille sauvegarde.
-const SETTING_DEFAULTS := {"eat_files": true, "clipboard": false, "suggestions": false, "ai_gpu": true}
+const SETTING_DEFAULTS := {"eat_files": true, "clipboard": false, "suggestions": false, "ai_gpu": true,
+	"screenshots": true, "share_visible": true, "auto_update": true}
 
 
 static func setting_on(key: String) -> bool:
