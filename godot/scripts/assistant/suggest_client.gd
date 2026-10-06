@@ -55,6 +55,7 @@ var min_confidence := 0.45
 var cooldown := 20.0  ## s avant de reproposer la meme chose pour le meme champ
 var focus_debounce := 0.15
 var use_gpu := true
+var model := ""  ## fichier .gguf dans assistant/models ("" = defaut du service ; reglage "ai_model")
 var respect_setting := true  ## tests : false pour piloter start()/stop() a la main
 ## Appele a chaque focus : renvoie les textes copies, du plus recent au plus ancien
 ## (String, ou Dictionary avec une cle "text").
@@ -145,6 +146,11 @@ func start() -> bool:
 	_base = "http://127.0.0.1:%d" % _port
 	var args := PackedStringArray([dir.path_join("service.py"), "--port", str(_port), "--token", _token,
 		"--parent-pid", str(OS.get_process_id()), "--gpu" if use_gpu else "--cpu"])
+	var m := model
+	if m == "" and respect_setting:
+		m = str(GameState.settings.get("ai_model", ""))
+	if m != "" and not m.contains("/") and not m.contains("\\"):  # un nom de fichier, rien d'autre
+		args.append_array(["--model", m])
 	_pid = OS.create_process(py, args, false)
 	if _pid <= 0:
 		_set_state("error", "lancement du service impossible")

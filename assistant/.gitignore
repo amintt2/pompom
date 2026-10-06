@@ -1,0 +1,8 @@
+# gros fichiers telecharges par setup.ps1
+models/
+llama/
+.venv/
+__pycache__/
+*.pyc
+*.part
+*.log

@@ -53,6 +53,7 @@ var _climb_cd := 20.0
 var hud: GameHud
 var clip: ClipboardKeeper
 var updater: Updater
+var suggest: SuggestClient
 var _needs_t := 240.0
 var _eating := false
 var _hover_needs_t := 0.0
@@ -92,6 +93,19 @@ func setup(p_stage: PetStage, p_emotes: EmoteLayer) -> void:
 	clip.name = "Clipboard"
 	add_child(clip)
 	clip.setup(stage, emotes)
+	suggest = SuggestClient.new()
+	suggest.name = "Suggest"
+	add_child(suggest)
+	suggest.candidates_provider = func() -> Array:
+		var out := []
+		for it in clip.items:
+			if it["kind"] == "text":
+				out.append(it)
+		return out
+	suggest.suggestion.connect(func(text_fr: String, _idx: int, _kind: String):
+		emotes.say(text_fr + " (clique-moi)", 5.0)
+		pet.act_hop(1, 0.1))
+	suggest.setup()
 	updater = Updater.new()
 	updater.name = "Updater"
 	add_child(updater)
@@ -513,6 +527,11 @@ func _after_landing(impact: float) -> void:
 
 func _poke() -> void:
 	if state == "peek":
+		return
+	if suggest and suggest.pending_item():
+		clip.copy_item(suggest.take_pending())
+		_say("C'est copié ! Ctrl+V pour coller.")
+		pet.act_hop(1, 0.12)
 		return
 	if pet.sleeping:
 		pet.wake_up()

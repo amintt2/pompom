@@ -73,7 +73,11 @@ travaille avec toi, joue avec toi… et mange tes vieux fichiers.
 - **Gardien du presse-papiers** : ce que tu copies (image, texte, fichiers) apparaît sur sa tête.
   - Clic sur la carte : il la recopie. Glisse-la dehors : il la dépose.
   - S'il la porte trop longtemps, il fatigue…
-- **Suggestions intelligentes** (en cours) : une petite IA locale (llama.cpp, modèle de moins de 1 Go) repère le champ où tu écris et te propose le bon élément copié. Tout reste sur ton PC.
+- **Suggestions intelligentes** (bêta, désactivées par défaut) : quand tu cliques dans un champ (email, adresse, recherche…), il propose le bon texte copié.
+  - Clique sur lui pour le copier, puis Ctrl+V.
+  - Une petite IA locale décide : [llama.cpp](https://github.com/ggml-org/llama.cpp) avec Llama 3.2 1B, environ 55 ms sur la carte graphique, 97,8 % de bonnes suggestions sur nos tests.
+  - Il ne lit jamais ce que tu tapes, et jamais les champs de mot de passe.
+  - Installation : `powershell -ExecutionPolicy Bypass -File assistant/setup.ps1` (voir [assistant/README.md](assistant/README.md)), puis active « Suggestions » dans les réglages.
 
 ![Presse-papiers](docs/images/presse_papiers.png)
 
@@ -202,7 +206,7 @@ Toutes les idées : [docs/idees_interactivite.md](docs/idees_interactivite.md).
 
 - Moteur : [Godot Engine](https://godotengine.org) (MIT). Modélisation et rendus : [Blender](https://www.blender.org) / Cycles.
 - Police : [Fredoka](https://fonts.google.com/specimen/Fredoka) (SIL OFL 1.1).
-- IA locale : [llama.cpp](https://github.com/ggml-org/llama.cpp) (MIT).
+- IA locale : [llama.cpp](https://github.com/ggml-org/llama.cpp) (MIT). **Built with Llama** : le modèle par défaut est Llama 3.2 1B Instruct, sous [Llama 3.2 Community License](https://www.llama.com/llama3_2/license/) (non inclus dans ce dépôt, téléchargé par `assistant/setup.ps1`). Une alternative sous Apache-2.0 (Qwen2.5 0.5B) est disponible avec `setup.ps1 -Light`.
 - Développé avec l'aide de [Claude Code](https://claude.com/claude-code).
 
 Licence : [MIT](LICENSE).

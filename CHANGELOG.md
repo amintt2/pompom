@@ -31,6 +31,7 @@ Première bêta publique.
 
 ### Assistant
 - Gardien du presse-papiers (optionnel) : ce que tu copies apparaît sur sa tête.
+- Suggestions intelligentes (bêta, optionnelles) : IA locale llama.cpp, rien ne quitte ton PC.
 
 ### Technique
 - Boutique et menus entièrement redessinés, testés automatiquement.
