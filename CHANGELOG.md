@@ -3,6 +3,16 @@
 Toutes les versions de Pompom. Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/)
 et les numéros suivent [SemVer](https://semver.org/lang/fr/).
 
+## [0.3.0-beta] - 2026-10-06
+
+### Il vit tes parties avec toi
+- **Il fête tes buts et tes éliminations** (multi-kill, ace, victoire) et boude un peu quand tu meurs ou que l'adversaire marque. Récap de session avec tes buts et éliminations.
+- **Rocket League** : Stats API officielle (activation proposée avec ton accord, une fois sorti du jeu) ; ne fête que les buts de ton équipe. Option : lecture du tableau des scores.
+- **CS2 et Dota 2** : Game State Integration officielle de Valve. **LoL / TFT** : API locale officielle de Riot.
+- **Valorant, Fortnite** (option) : lecture des éliminations et des morts à l'écran, sans jamais toucher au jeu.
+- **Jeux de stratégie** : il met ses lunettes et réfléchit avec toi. Catalogue de 250 jeux par genre.
+- Nouvelle section « Jeux » dans les réglages.
+
 ## [0.2.3-beta] - 2026-10-06
 
 ### Mises à jour plus rapides

@@ -72,6 +72,12 @@ var _perf_t := 0.0
 var perf_locked := false  # --bench
 var _mouse_dist := INF
 var _cap_interval := 0.15
+var games: GameEvents
+var _game_react_cd := 0.0
+var _pending_setups: Array = []
+var _setup_dialog: ConfirmationDialog
+var _thinking_game := false
+var _think_t := 12.0
 
 
 func setup(p_stage: PetStage, p_emotes: EmoteLayer) -> void:
@@ -138,6 +144,7 @@ func setup(p_stage: PetStage, p_emotes: EmoteLayer) -> void:
 		pet.act_sad())
 	GameState.level_up.connect(_on_level_up)
 	GameState.quest_completed.connect(_on_quest_completed)
+	_setup_games()
 
 	await get_tree().process_frame
 	if bool(GameState.stats.get("first_run", true)):
@@ -490,10 +497,146 @@ func _process(delta: float) -> void:
 		_update_polygon()
 	_mouse_dist = dist
 	_update_perf(delta)
+	_game_tick(delta)
 	_cap_t -= delta
 	if _cap_t <= 0.0 and state != "hidden" and _cap_interval > 0.0:
 		if capture.capture(Rect2i(Vector2i(pos), Vector2i(W, H)), center, _pet_px(), pet, _poly):
 			_cap_t = _cap_interval
+
+
+# =========================================================================== evenements de jeu
+## Buts, eliminations, morts... (API officielles des jeux ou lecture de l'ecran, voir scripts/games/).
+func _setup_games() -> void:
+	games = GameEvents.new()
+	games.name = "GameEvents"
+	add_child(games)
+	games.event.connect(_on_game_event)
+	games.game_changed.connect(_on_game_changed)
+	games.setup_suggested.connect(func(game: String, msg: String):
+		var asked: Dictionary = GameState.settings.get("game_setup_asked", {})
+		if not asked.has(game):
+			_pending_setups.append([game, msg]))
+	games.status_changed.connect(func(source: String, status: String):
+		if source == "hud" and status in ["black", "frozen"]:
+			var hint := games.hud_hint()
+			if hint != "":
+				_queue_mail("Je ne vois pas ton jeu pour fêter tes exploits : " + hint + "."))
+
+
+func _on_game_event(kind: String, mine: bool, data: Dictionary) -> void:
+	var good := mine and kind in ["goal", "kill", "multikill", "first_blood", "ace", "round_won", "match_won", "objective", "assist"]
+	var bad := kind in ["death", "round_lost", "match_lost"] or (kind == "goal" and not mine)
+	if not _session.is_empty():
+		if kind == "goal" and mine:
+			_session["goals"] = int(_session.get("goals", 0)) + 1
+		elif kind == "kill" and mine:
+			_session["kills"] = int(_session.get("kills", 0)) + 1
+		elif kind == "death":
+			_session["deaths"] = int(_session.get("deaths", 0)) + 1
+	if state in ["hidden", "drag"] or pet.sleeping or not (good or bad or kind == "goal_any"):
+		return
+	var big := kind in ["multikill", "ace", "match_won", "match_lost"]
+	if _game_react_cd > 0.0 and not big:
+		return
+	_game_react_cd = 2.5
+	if good:
+		GameState.change_happiness(1.0)
+		match kind:
+			"goal":
+				pet.act_spin()
+				emotes.emit_emote("sparkle", 4)
+				_say("BUUUT !")
+			"multikill":
+				pet.act_hop(clampi(int(data.get("n", 2)), 2, 4), 0.14)
+				emotes.emit_emote("star", clampi(int(data.get("n", 2)) + 1, 3, 6))
+			"ace", "match_won":
+				pet.act_dance(3.0)
+				emotes.emit_emote("sparkle", 6)
+				_say("GG !! Trop fort !")
+			"assist", "objective":
+				pet.act_nod()
+			_:
+				pet.act_hop(1, 0.12)
+				emotes.emit_emote("sparkle", 2)
+	elif bad:
+		match kind:
+			"match_lost":
+				pet.act_sad()
+				_say("Pas grave, la prochaine sera la bonne.")
+			"death":
+				pet.act_sad()
+			_:
+				pet.act_meh()
+	else:
+		pet.act_surprised()
+
+
+func _on_game_changed(_proc: String, genre: String) -> void:
+	var thinking := GameCatalog.is_thinking_genre(genre)
+	if thinking == _thinking_game:
+		return
+	_thinking_game = thinking
+	if thinking:
+		# jeu de reflexion : il met ses lunettes et reflechit avec toi
+		if str(pet.slot_items.get("face", "")) == "":
+			pet.set_item("face", "round_glasses", GameState.colors_for("round_glasses"))
+		pet.set_base_expression("focused")
+		_think_t = 4.0
+	else:
+		var eq: String = GameState.equipped.get("face", "")
+		if str(pet.slot_items.get("face", "")) != eq:
+			pet.set_item("face", eq, GameState.colors_for(eq) if eq != "" else {})
+		pet.set_base_expression("neutral")
+
+
+func _game_tick(delta: float) -> void:
+	_game_react_cd = maxf(0.0, _game_react_cd - delta)
+	if _thinking_game and state in ["ground", "walk", "spot", "peek"] and not pet.busy and not pet.sleeping:
+		_think_t -= delta
+		if _think_t <= 0.0:
+			_think_t = randf_range(14.0, 26.0)
+			# « hmm... » : il leve les yeux, se pose la question, puis acquiesce
+			pet.look = Vector2(randf_range(-0.6, 0.6), 0.6)
+			emotes.emit_emote("question", 1)
+			get_tree().create_timer(1.6).timeout.connect(func():
+				if _thinking_game and not pet.busy:
+					pet.act_nod())
+	# proposer l'activation d'une integration officielle, une fois le jeu quitte (jamais en pleine partie)
+	if not _pending_setups.is_empty() and mode == "normal" and state in ["ground", "walk"] and not pet.busy \
+			and (_setup_dialog == null or not is_instance_valid(_setup_dialog)):
+		_ask_game_setup(_pending_setups.pop_front())
+
+
+func _ask_game_setup(entry: Array) -> void:
+	var game: String = entry[0]
+	var asked: Dictionary = (GameState.settings.get("game_setup_asked", {}) as Dictionary).duplicate()
+	asked[game] = true
+	GameState.set_setting("game_setup_asked", asked)
+	var dlg := ConfirmationDialog.new()
+	_setup_dialog = dlg
+	dlg.theme = UITheme.theme()
+	dlg.content_scale_factor = clampf(float(DisplayServer.screen_get_dpi(_screen())) / 96.0, 1.0, 3.0)
+	dlg.title = "%s veut fêter tes parties" % GameState.pet_name
+	dlg.dialog_text = str(entry[1])
+	dlg.dialog_autowrap = true
+	dlg.min_size = Vector2i(460, 0)
+	dlg.ok_button_text = "Oui, active-le"
+	dlg.cancel_button_text = "Non merci"
+	dlg.always_on_top = true
+	add_child(dlg)
+	dlg.confirmed.connect(func():
+		var err := games.apply_setup(game)
+		if err == "":
+			_say("C'est fait ! Relance le jeu et je fêterai tes exploits.")
+			pet.act_hop(2, 0.14)
+		else:
+			_say(err)
+			pet.act_sad()
+		dlg.queue_free())
+	dlg.canceled.connect(func():
+		_say("D'accord ! Tu pourras changer d'avis dans les réglages.")
+		dlg.queue_free())
+	dlg.popup_centered()
 
 
 ## Images par seconde, sur-echantillonnage et frequence de capture selon la situation :
@@ -981,7 +1124,7 @@ func _update_mode() -> void:
 	emotes.mute_emotes = m == "meeting"
 	var gaming := ["game", "fs", "comp"]
 	if gaming.has(m) and not gaming.has(old):
-		_session = {"name": Activity.game_name, "start": Time.get_ticks_msec() / 1000.0,
+		_session = {"name": Activity.game_name, "start": Time.get_ticks_msec() / 1000.0, "kills": 0, "deaths": 0, "goals": 0,
 			"coins": int(GameState.stats.get("earned_total", 0)), "comp": m == "comp"}
 	if gaming.has(old) and not gaming.has(m):
 		_end_game_session()
@@ -1013,8 +1156,13 @@ func _end_game_session() -> void:
 	var dur := Time.get_ticks_msec() / 1000.0 - float(_session["start"])
 	var coins := int(GameState.stats.get("earned_total", 0)) - int(_session["coins"])
 	var name_: String = str(_session["name"]) if str(_session["name"]) != "" else "ton jeu"
-	if dur >= 20.0 * 60.0:
-		_queue_mail("Session de %s : %s · +%d pièces. GG !" % [name_, _fmt_dur(dur), coins])
+	var feats := ""
+	if int(_session.get("goals", 0)) > 0:
+		feats += " · %d but%s" % [_session["goals"], "s" if int(_session["goals"]) > 1 else ""]
+	if int(_session.get("kills", 0)) > 0:
+		feats += " · %d élimination%s" % [_session["kills"], "s" if int(_session["kills"]) > 1 else ""]
+	if dur >= 20.0 * 60.0 or (feats != "" and dur >= 5.0 * 60.0):
+		_queue_mail("Session de %s : %s%s · +%d pièces. GG !" % [name_, _fmt_dur(dur), feats, coins])
 	elif bool(_session.get("comp", false)) and dur >= 5.0 * 60.0:
 		_queue_mail("GG ?")
 	_session = {}

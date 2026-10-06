@@ -69,6 +69,16 @@ travaille avec toi, joue avec toi… et mange tes vieux fichiers.
 |---|---|---|
 | ![Boutique](docs/images/boutique.png) | ![Quêtes](docs/images/quetes.png) | ![Menu](docs/images/menu.png) |
 
+### Il joue avec toi
+- **Il fête tes exploits** : buts, éliminations, multi-kills, victoires. Il boude un peu quand tu meurs ou quand l'adversaire marque.
+  - **Rocket League** : via la Stats API officielle (il te propose de l'activer, avec ton accord). Il ne fête que les buts de **ton** équipe.
+  - **CS2, Dota 2** : via la Game State Integration officielle de Valve (un petit fichier ajouté avec ton accord).
+  - **League of Legends / TFT** : via l'API locale officielle de Riot, rien à installer.
+  - **Valorant, Fortnite** (pas d'API) : en option, il lit tes éliminations à l'écran (jeu en « plein écran fenêtré »). Il ne lit jamais la mémoire du jeu et ne touche à rien : aucun risque avec les anti-triche.
+- **Jeux de stratégie** (Civilization, Age of Empires, échecs, TFT…) : il met ses lunettes et réfléchit avec toi.
+- **Économie en jeu** : pendant tes parties il passe à 30 images/s pour ne pas te coûter de FPS.
+- Détails, sources et limites : [docs/game_events.md](docs/game_events.md).
+
 ### Petit assistant (optionnel)
 - **Gardien du presse-papiers** : ce que tu copies (image, texte, fichiers) apparaît sur sa tête.
   - Clic sur la carte : il la recopie. Glisse-la dehors : il la dépose.
@@ -93,7 +103,8 @@ dans `SHA256SUMS.txt`.
 **Configuration** : Windows 10 ou 11, une carte graphique compatible DirectX 12. Une version mobile est prévue.
 
 ### Mises à jour automatiques
-Pompom vérifie les nouvelles versions sur GitHub au démarrage, puis toutes les 6 heures. Quand il y en a une,
+Pompom vérifie toutes les 10 minutes si une nouvelle version est disponible sur GitHub (et à la demande : clic droit →
+**Chercher une mise à jour**). Quand il y en a une,
 il te prévient : **clic droit sur lui → Mettre à jour**. Il télécharge la nouvelle version, **vérifie son empreinte
 SHA-256**, remplace l'exe et redémarre. Il ne met jamais à jour sans ton accord. Tu peux désactiver la
 vérification dans les réglages.
@@ -113,7 +124,7 @@ vérification dans les réglages.
 
 ## 🔒 Vie privée
 
-- **Tout se passe sur ton PC.** La seule connexion réseau est la vérification des mises à jour, vers l'API publique des Releases GitHub.
+- **Tout se passe sur ton PC.** La seule connexion Internet est la vérification des mises à jour (Releases GitHub). Les intégrations de jeux ne parlent qu'à ton propre PC (127.0.0.1).
 - Pour savoir si tu travailles ou si tu joues, un petit script lit uniquement **ta durée d'inactivité** et le **nom de l'application au premier plan** (et son titre). Rien n'est enregistré à part tes statistiques de temps, rien n'est envoyé.
 - **Reflets** : il capture la petite zone de l'écran autour de lui, en mémoire seulement. Avec les reflets activés, Windows ne le montre pas sur tes captures d'écran (désactivable).
 - **Presse-papiers et IA** : ces options sont désactivées par défaut. Rien n'est écrit sur le disque, et il ignore ce qui vient des gestionnaires de mots de passe et ce qui ressemble à un secret.

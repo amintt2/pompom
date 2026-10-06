@@ -1981,6 +1981,11 @@ func _build_settings_page() -> Control:
 
 	_setting_row(g2, "Me nourrir avec des fichiers", "Glisse un fichier sur lui : il le mange et le fichier part dans la Corbeille.", _toggle_setting("eat_files"), false)
 
+	var g5 := _group(col, "Jeux", "star", "", UITheme.PEACH)
+	_setting_row(g5, "Réagir à mes parties", "Il fête tes buts et tes éliminations, et boude quand tu perds (Rocket League, CS2, Dota 2, LoL…). Il met ses lunettes dans les jeux de stratégie.", _toggle_setting("game_events"))
+	_setting_row(g5, "Regarder l'écran des jeux sans API", "Valorant, Fortnite : il lit tes éliminations à l'écran (en « plein écran fenêtré »). Rien n'est enregistré.", _toggle_setting("hud_watch"))
+	_setting_row(g5, "Rocket League : lire le tableau des scores", "Si l'API de Rocket League n'est pas activée, il regarde le score en haut de l'écran.", _toggle_setting("rl_screen_watch"), false)
+
 	var g4 := _group(col, "Assistant", "bolt", "", UITheme.SKY)
 	_setting_row(g4, "Tenir mes captures d'écran", "Quand tu fais une capture (Outil Capture d'écran, Win+Maj+S), il la garde sur sa tête. Clique-le pour la recopier.", _toggle_setting("screenshots"))
 	_setting_row(g4, "Garder ce que je copie", "Il se souvient de tout ce que tu copies (presse-papiers) pour le retrouver facilement.", _toggle_setting("clipboard"))
@@ -2064,7 +2069,8 @@ func _option_index(key: String) -> int:
 
 ## Valeurs par defaut des reglages qui peuvent manquer dans une vieille sauvegarde.
 const SETTING_DEFAULTS := {"eat_files": true, "clipboard": false, "suggestions": false, "ai_gpu": true,
-	"screenshots": true, "share_visible": true, "auto_update": true, "competitive_hide": true, "game_saver": true}
+	"screenshots": true, "share_visible": true, "auto_update": true, "competitive_hide": true, "game_saver": true,
+	"game_events": true, "hud_watch": false, "rl_screen_watch": false}
 
 
 static func setting_on(key: String) -> bool:

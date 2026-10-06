@@ -73,6 +73,8 @@ func _debug_overrides(args: PackedStringArray) -> void:
 		_feed_test()
 	if args.has("--modes-test"):
 		_modes_test()
+	if args.has("--game-events-test"):
+		_game_events_test()
 	if args.has("--plat-test"):
 		_plat_test()
 	for a in args:
@@ -135,6 +137,50 @@ func _bench(secs: float) -> void:
 			slow += 1
 	print("BENCH frames>8.3ms (sous 120 fps) = %d" % slow)
 	Prof.report()
+	get_tree().quit()
+
+
+## Test : reactions du compagnon aux evenements de jeu (buts, eliminations, morts, jeu de strategie).
+func _game_events_test() -> void:
+	await get_tree().create_timer(3.0).timeout
+	var dc := get_node_or_null("Desktop")
+	var ok := 0
+	var ko := 0
+	var frames: Array[Image] = []
+	for ev in [["goal", true, {"game": "rocket_league"}], ["goal", false, {"game": "rocket_league"}],
+			["kill", true, {"game": "valorant"}], ["multikill", true, {"game": "cs2", "n": 3}], ["death", true, {"game": "lol"}]]:
+		dc._game_react_cd = 0.0
+		dc.games.event.emit(ev[0], ev[1], ev[2])
+		await get_tree().create_timer(0.45).timeout
+		frames.append(get_viewport().get_texture().get_image())
+		var busy: bool = stage.pet.busy
+		print("GAMEEV %s mine=%s -> busy=%s expr=%s" % [ev[0], ev[1], busy, stage.pet.expression])
+		if busy:
+			ok += 1
+		else:
+			ko += 1
+		await get_tree().create_timer(2.6).timeout
+	dc.games.game_changed.emit("civilizationvi", "strategy")
+	await get_tree().create_timer(1.0).timeout
+	frames.append(get_viewport().get_texture().get_image())
+	var glasses := str(stage.pet.slot_items.get("face", ""))
+	print("GAMEEV strategy face=", glasses)
+	if glasses != "": ok += 1
+	else: ko += 1
+	dc.games.game_changed.emit("", "")
+	await get_tree().create_timer(1.0).timeout
+	var after := str(stage.pet.slot_items.get("face", ""))
+	if after == str(GameState.equipped.get("face", "")): ok += 1
+	else: ko += 1
+	var w := frames[0].get_width()
+	var h := frames[0].get_height()
+	var sheet := Image.create(w * frames.size(), h, false, Image.FORMAT_RGBA8)
+	sheet.fill(Color(0.16, 0.16, 0.19))
+	for i in frames.size():
+		frames[i].convert(Image.FORMAT_RGBA8)
+		sheet.blend_rect(frames[i], Rect2i(0, 0, w, h), Vector2i(i * w, 0))
+	sheet.save_png(ProjectSettings.globalize_path("user://game_events.png"))
+	print("GAMEEV TEST: %d ok, %d ko" % [ok, ko])
 	get_tree().quit()
 
 
