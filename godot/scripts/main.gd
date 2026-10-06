@@ -97,6 +97,8 @@ func _debug_overrides(args: PackedStringArray) -> void:
 				get_tree().quit())
 	if args.has("--situations-brain-test"):
 		_situations_brain_test()
+	if args.has("--vision-react-test"):
+		_vision_react_test()
 	if args.has("--game-events-test"):
 		_game_events_test()
 	if args.has("--plat-test"):
@@ -209,6 +211,28 @@ func _situations_brain_test() -> void:
 		sheet.blend_rect(frames[i], Rect2i(0, 0, w, h), Vector2i(i * w, 0))
 	sheet.save_png(ProjectSettings.globalize_path("user://situations_brain.png"))
 	print("SITBRAIN TEST: %d ok, %d ko" % [ok, ko])
+	get_tree().quit()
+
+
+## Test : la vision signale une video -> il marche jusque sous elle et la regarde.
+func _vision_react_test() -> void:
+	await get_tree().create_timer(3.0).timeout
+	var dc := get_node_or_null("Desktop")
+	var u := DisplayServer.screen_get_usable_rect(DisplayServer.window_get_current_screen())
+	var vr := Rect2(u.position.x + u.size.x * 0.25, u.position.y + 100, 640, 360)
+	var cx0: float = dc._center_x()
+	dc._vision_cd = 0.0
+	stage.pet.stop_action()
+	dc.vision.vision_changed.emit("video", {"video": 0.9}, vr, false)
+	var t0 := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t0 < 25000 and not dc.situations.is_playing():
+		await get_tree().create_timer(0.5).timeout
+		print("VR t=%d state=%s busy=%s cur=%s playing=%s cx=%d" % [Time.get_ticks_msec() - t0, dc.state, stage.pet.busy, dc.situations.current, dc.situations.is_playing(), dc._center_x()])
+	var cx: float = dc._center_x()
+	var ok: bool = absf(cx - vr.get_center().x) < 80.0 and dc.situations.current == "video_watch"
+	print("VISIONREACT start_cx=%d cx=%d video_cx=%d situation=%s -> %s" % [cx0, cx, vr.get_center().x, dc.situations.current, "OK" if ok else "KO"])
+	await get_tree().create_timer(1.5).timeout
+	get_viewport().get_texture().get_image().save_png(ProjectSettings.globalize_path("user://vision_react.png"))
 	get_tree().quit()
 
 

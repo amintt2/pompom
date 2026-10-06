@@ -1,14 +1,24 @@
 """Service local Pompom : champ focus (UI Automation) + suggestions de collage + decisions typees.
 
-  python service.py --port 47821 --token SECRET [--gpu|--cpu] [--model FICHIER.gguf] [--parent-pid PID]
+  python service.py --port 47821 --token SECRET [--gpu|--cpu] [--base multilingual|english] [--mode hybrid|heads] [--parent-pid PID]
 
 API (127.0.0.1 uniquement ; en-tete X-Pompom-Token obligatoire sauf /health) :
-  GET  /health                      -> {ok, llm: loading|ready|off|error, backend, model, focus}
+  GET  /health                      -> {ok, heads: loading|ready|off|error, backend: directml|cpu, model, mode, focus}
   GET  /focus?after=SEQ&wait=S      -> champ focus courant (attend jusqu'a S s qu'il change apres SEQ)
   POST /suggest {candidates:[...], field?:{...}}  -> {kind, index, confidence, label_fr, ...}
        (sans "field" : utilise le champ focus courant)
-  POST /decide {question, options:[...], context?, system?}  -> {answer, confidence, probs, ms}
+  POST /decide {question, options:[...], context?}  -> {answer, confidence, probs, ms}  (choix zero-shot Laya)
+  GET  /vision                      -> {enabled, ready, probs:{game,video,work_code,work_docs,browse,chat,other},
+                                        top, video_rect:[x,y,w,h]|null, fullscreen, is_watching_video, ts, ...}
+  POST /vision/enable {on: bool}    -> active / coupe la vision (opt-in ; captures en memoire uniquement)
+  POST /vision/pause {paused: bool} -> pause totale demandee par le jeu (jeu competitif / plein ecran)
+  POST /vision/frame                -> une analyse immediate, meme en pause
+  (pause automatique, sans capture ni calcul, quand une appli plein ecran autre qu'un navigateur ou un
+   lecteur video a le focus)
   POST /shutdown
+
+Decisions : stuntd (encodeur Laya fige + tetes de classification entrainees hors ligne), aucun LLM.
+Hors ligne : tout est lu dans models/ (ONNX). PyTorch n est PAS necessaire (seulement dans dev/ pour entrainer).
 
 Vie privee : aucune connexion sortante, aucun fichier ecrit (sauf --log, qui ne contient jamais de texte
 copie), le contenu des champs n'est jamais lu, les champs mot de passe sont ignores.
@@ -21,6 +31,9 @@ import ctypes
 import hmac
 import json
 import os
+
+os.environ.setdefault("HF_HUB_OFFLINE", "1")  # jamais de reseau : tout est local
+os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
 import sys
 import threading
 import time
@@ -32,7 +45,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
 from pompom_assist.decider import Decider  # noqa: E402
-from pompom_assist.llm import DEFAULT_MODEL, LlamaClient, LlamaServer, ServerConfig  # noqa: E402
+from pompom_assist.heads import OnnxHeads, env_threads  # noqa: E402
 
 MAX_BODY = 256 * 1024
 MAX_CANDIDATES = 8
@@ -42,11 +55,14 @@ MAX_CANDIDATE_CHARS = 4000
 class State:
     def __init__(self, args) -> None:
         self.args = args
-        self.decider = Decider(None)
-        self.server: LlamaServer | None = None
-        self.llm_state = "off"
+        self.decider = Decider(None, mode=args.mode)
+        self.decider.on_use = self.use_heads
+        self.last_use = time.time()
+        self.heads_state = "off"
         self.backend = ""
         self.watcher = None
+        self.vision = None  # VisionWatcher, seulement quand le reglage "vision" est actif
+        self.vision_lock = threading.Lock()
         self.focus_cond = threading.Condition()
         self.started = time.time()
         self.log_file = open(args.log, "a", encoding="utf-8") if args.log else None
@@ -56,39 +72,49 @@ class State:
             self.log_file.write(f"{time.strftime('%H:%M:%S')} {msg}\n")
             self.log_file.flush()
 
-    # ------------------------------------------------------------------ modele
-    def start_llm(self) -> None:
-        if self.args.no_llm:
+    # ------------------------------------------------------------------ modele (stuntd)
+    def start_heads(self) -> None:
+        """Charge les tetes en arriere-plan (le service repond deja avec les regles pendant ce temps)."""
+        if self.args.no_model or self.heads_state in ("loading", "ready"):
             return
-        threading.Thread(target=self._llm_boot, name="llm-boot", daemon=True).start()
+        self.heads_state = "loading"
+        threading.Thread(target=self._boot, name="heads-boot", daemon=True).start()
 
-    def _llm_boot(self) -> None:
-        self.llm_state = "loading"
-        order = [True, False] if self.args.gpu else [False]
-        for gpu in order:
-            cfg = ServerConfig(model=self.args.model, gpu=gpu, threads=self.args.threads,
-                               log_path=self.args.llama_log)
-            srv = LlamaServer(cfg)
-            t0 = time.time()
-            if srv.start() and srv.wait_ready(90):
-                client = LlamaClient(srv.base, timeout=self.args.llm_timeout, api_key=srv.api_key)
-                try:  # chauffe : met les prefixes des prompts en cache
-                    self.decider.llm = client
-                    self.decider.suggest({"name": "Rechercher", "process": "chrome.exe", "window_title": "Accueil",
-                                          "control_type": "edit"},
-                                         ["14 rue des Lilas, 69003 Lyon", "idées cadeau"])
-                    self.decider.field_kind({"name": "?", "process": "x.exe", "control_type": "edit"})
-                except Exception as exc:  # noqa: BLE001
-                    self.log(f"warmup error {exc!r}")
-                self.server = srv
-                self.backend = srv.backend
-                self.llm_state = "ready"
-                self.log(f"llm ready backend={srv.backend} in {time.time() - t0:.2f}s")
-                return
-            self.log(f"llm start failed gpu={gpu}: {srv.error}")
-            srv.stop()
-            self.decider.llm = None
-        self.llm_state = "error"
+    def _boot(self) -> None:
+        # Texte : toujours sur CPU. Mesure : DirectML etait plus lent (formes variables -> recompilation)
+        # et moins precis (fp16) pour cet encodeur ; la carte graphique est gardee pour la vision.
+        t0 = time.time()
+        try:
+            heads = OnnxHeads(gpu=False, threads=self.args.threads)
+            heads.warm()
+        except Exception as exc:  # noqa: BLE001
+            self.log(f"heads load failed: {exc!r}")
+            self.heads_state = "error"
+            return
+        self.decider.heads = heads
+        self.backend = heads.backend
+        self.last_use = time.time()
+        self.heads_state = "ready"
+        self.log(f"heads ready backend={heads.backend} in {time.time() - t0:.2f}s")
+
+    def use_heads(self) -> None:
+        """Appele par le Decider a chaque fois qu'il voudrait une tete : recharge si besoin."""
+        self.last_use = time.time()
+        if self.heads_state in ("off", "unloaded"):
+            self.start_heads()
+
+    def _idle_loop(self) -> None:
+        # libere ~0,7 Go de RAM quand personne n'a eu besoin du modele depuis un moment
+        while True:
+            time.sleep(10)
+            if (self.args.idle_unload > 0 and self.heads_state == "ready"
+                    and time.time() - self.last_use > self.args.idle_unload):
+                self.decider.heads = None
+                self.heads_state = "unloaded"
+                import gc
+
+                gc.collect()
+                self.log("heads unloaded (idle)")
 
     # ------------------------------------------------------------------ focus
     def start_focus(self) -> None:
@@ -125,11 +151,38 @@ class State:
                     return cur
                 self.focus_cond.wait(max(0.01, end - time.time()))
 
+    # ------------------------------------------------------------------ vision (opt-in)
+    def set_vision(self, on: bool) -> dict:
+        with self.vision_lock:
+            if on and self.vision is None:
+                from pompom_assist.vision import SiglipEyes, VisionWatcher
+
+                own = {os.getpid()} | ({self.args.parent_pid} if self.args.parent_pid else set())
+                gpu, threads = self.args.gpu, self.args.vision_threads
+                self.vision = VisionWatcher(lambda: SiglipEyes(gpu=gpu, threads=threads),
+                                            motion_interval=self.args.motion_interval,
+                                            classify_interval=self.args.vision_interval, own_pids=own)
+                self.vision.start()
+                self.log("vision on")
+            elif not on and self.vision is not None:
+                self.vision.stop()
+                self.vision = None  # captures et vignettes liberees avec le thread
+                self.log("vision off")
+        return self.vision_state()
+
+    def vision_state(self) -> dict:
+        v = self.vision
+        if v is None:
+            return {"enabled": False, "ready": False, "probs": {}, "top": "", "video_rect": None,
+                    "fullscreen": False, "ts": 0.0}
+        st = v.get()
+        st.update({"enabled": True, "backend": v.stats.get("backend", ""), "error": v.stats.get("error", "")})
+        return st
+
     def shutdown(self) -> None:
+        self.set_vision(False)
         if self.watcher:
             self.watcher.stop()
-        if self.server:
-            self.server.stop()
 
 
 def make_handler(state: State, token: str, port: int):
@@ -181,11 +234,14 @@ def make_handler(state: State, token: str, port: int):
             if u.path == "/health":
                 if not self._guard(need_token=False):
                     return
-                self._send(200, {"ok": True, "llm": state.llm_state, "backend": state.backend,
-                                 "model": state.args.model, "focus": state.watcher is not None,
+                self._send(200, {"ok": True, "heads": state.heads_state, "backend": state.backend,
+                                 "model": "stuntd-heads/laya-multilingual (onnx)", "mode": state.args.mode, "focus": state.watcher is not None,
                                  "uptime": round(time.time() - state.started, 2)})
                 return
             if not self._guard():
+                return
+            if u.path == "/vision":
+                self._send(200, state.vision_state())
                 return
             if u.path == "/focus":
                 q = parse_qs(u.query)
@@ -206,6 +262,21 @@ def make_handler(state: State, token: str, port: int):
             body = self._body()
             if body is None:
                 return
+            if u.path == "/vision/enable":
+                self._send(200, state.set_vision(bool(body.get("on", True))))
+                return
+            if u.path == "/vision/pause":  # le jeu sait qu'un jeu competitif / plein ecran a le focus
+                v = state.vision
+                if v is not None:
+                    v.paused_by_client = bool(body.get("paused", True))
+                self._send(200, state.vision_state())
+                return
+            if u.path == "/vision/frame":  # une analyse immediate, meme en pause (integration de jeu)
+                v = state.vision
+                if v is not None:
+                    v.request_frame()
+                self._send(200, {"ok": v is not None})
+                return
             if u.path == "/suggest":
                 cands = [str(c)[:MAX_CANDIDATE_CHARS] for c in (body.get("candidates") or [])][:MAX_CANDIDATES]
                 field = body.get("field")
@@ -215,7 +286,7 @@ def make_handler(state: State, token: str, port: int):
                 s = state.decider.suggest(field, cands).to_dict()
                 s["seq"] = field.get("seq", 0)
                 s["total_ms"] = round((time.perf_counter() - t0) * 1000, 2)
-                s["llm"] = state.llm_state
+                s["heads"] = state.heads_state
                 state.log(f"suggest kind={s['kind']} idx={s['index']} conf={s['confidence']} "
                           f"src={s['kind_source']}/{s['pick_source']} ms={s['total_ms']}")
                 self._send(200, s)
@@ -225,17 +296,20 @@ def make_handler(state: State, token: str, port: int):
                 if len(opts) < 2 or not body.get("question"):
                     self._send(400, {"error": "need question + >=2 options"})
                     return
+                state.use_heads()
+                t_wait = time.time()
+                while state.decider.heads is None and state.heads_state == "loading" and time.time() - t_wait < 15:
+                    time.sleep(0.05)
                 try:
-                    c = state.decider.choose(str(body["question"]), opts, str(body.get("context", "")),
-                                             str(body.get("system", "")))
+                    c = state.decider.choose(str(body["question"]), opts, str(body.get("context", "")))
                 except RuntimeError as exc:
-                    self._send(503, {"error": str(exc), "llm": state.llm_state})
+                    self._send(503, {"error": str(exc), "heads": state.heads_state})
                     return
                 except Exception as exc:  # noqa: BLE001
                     self._send(500, {"error": repr(exc)[:200]})
                     return
-                self._send(200, {"answer": c.answer, "confidence": round(c.confidence, 3),
-                                 "probs": {k: round(v, 3) for k, v in c.probs.items()}, "ms": round(c.latency_ms, 2)})
+                self._send(200, {"answer": c.label, "confidence": round(c.confidence, 3),
+                                 "probs": {k: round(v, 3) for k, v in c.probs.items()}, "ms": round(c.ms, 2)})
                 return
             self._send(404, {"error": "not_found"})
 
@@ -268,15 +342,21 @@ def main() -> None:
     ap.add_argument("--token", default=os.environ.get("POMPOM_ASSIST_TOKEN", ""))
     ap.add_argument("--gpu", dest="gpu", action="store_true", default=True)
     ap.add_argument("--cpu", dest="gpu", action="store_false")
-    ap.add_argument("--model", default=os.environ.get("POMPOM_ASSIST_MODEL", DEFAULT_MODEL))
-    ap.add_argument("--threads", type=int, default=4)
+    ap.add_argument("--base", "--model", dest="base", default="multilingual",
+                    help="(compatibilite) seul le checkpoint Laya multilingual est livre")
+    ap.add_argument("--idle-unload", type=float, default=300.0,
+                    help="s sans besoin du modele de texte avant de le decharger (0 = jamais)")
+    ap.add_argument("--mode", default="hybrid", choices=["hybrid", "heads"])
+    ap.add_argument("--threads", type=int, default=env_threads())
     ap.add_argument("--parent-pid", type=int, default=0)
-    ap.add_argument("--no-llm", action="store_true")
+    ap.add_argument("--no-model", action="store_true")
     ap.add_argument("--no-focus", action="store_true")
+    ap.add_argument("--vision", action="store_true", help="active la vision des le demarrage")
+    ap.add_argument("--vision-interval", type=float, default=3.0, help="s entre deux passages de l'encodeur")
+    ap.add_argument("--motion-interval", type=float, default=1.0, help="s entre deux captures (carte de mouvement)")
+    ap.add_argument("--vision-threads", type=int, default=2)
     ap.add_argument("--focus-interval", type=float, default=0.25)
-    ap.add_argument("--llm-timeout", type=float, default=3.0)
     ap.add_argument("--log", default="")
-    ap.add_argument("--llama-log", default="")
     args = ap.parse_args()
     if not args.token:
         print("--token requis", file=sys.stderr)
@@ -285,9 +365,15 @@ def main() -> None:
     httpd = ThreadingHTTPServer(("127.0.0.1", args.port), make_handler(state, args.token, args.port))
     httpd.daemon_threads = True
     watch_parent(args.parent_pid, state)
+    # sous Windows, .venvScriptspython(w).exe est un lanceur qui demarre le vrai Python en processus enfant :
+    # si le jeu tue le lanceur (OS.kill), on doit partir aussi.
+    watch_parent(os.getppid(), state)
     state.start_focus()
-    state.start_llm()
-    state.log(f"listening 127.0.0.1:{args.port} model={args.model} gpu={args.gpu}")
+    state.start_heads()
+    threading.Thread(target=state._idle_loop, name="idle", daemon=True).start()
+    if args.vision:
+        state.set_vision(True)
+    state.log(f"listening 127.0.0.1:{args.port} base={args.base} mode={args.mode} gpu={args.gpu}")
     try:
         httpd.serve_forever(poll_interval=0.5)
     except KeyboardInterrupt:

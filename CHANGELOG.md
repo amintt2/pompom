@@ -3,6 +3,20 @@
 Toutes les versions de Pompom. Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/)
 et les numéros suivent [SemVer](https://semver.org/lang/fr/).
 
+## [0.5.0-beta] - 2026-10-06
+
+### Il regarde ton écran (option, bêta)
+- Nouvelle option « Il regarde ton écran » : une IA de vision **locale** (SigLIP, Apache-2.0) devine si tu joues, regardes une vidéo, codes, écris ou discutes, et **repère où est la vidéo**.
+  - Une vidéo à l'écran : il marche jusque **sous la vidéo** et la regarde avec toi (pop-corn).
+  - Un jeu inconnu du catalogue : il sort sa manette si tu en as une.
+- Très léger : une analyse toutes les 3 s (≈ 43 ms sur la carte graphique, 0,4 % de processeur). Pause complète pendant les jeux en plein écran et les jeux compétitifs.
+- Les images restent en mémoire sur ton PC : jamais enregistrées, jamais envoyées.
+
+### Assistant plus léger, sans PyTorch
+- Les suggestions utilisent maintenant **stuntd + Laya** (modèle de décision, pas de génération de texte) au lieu de llama.cpp.
+- Modèles convertis en ONNX : l'installation de l'assistant passe d'environ 4 Go à environ 860 Mo, et la mémoire du modèle de texte se libère après 5 minutes sans servir.
+- L'assistant reste optionnel et séparé du jeu (Pompom.exe ne grossit pas).
+
 ## [0.4.1-beta] - 2026-10-06
 
 ### Mini-jeux : le vrai compagnon dans la partie

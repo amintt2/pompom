@@ -5,11 +5,15 @@ extends Node
 ##
 ## Tout reste sur la machine : le service Python (assistant/service.py) lit la DESCRIPTION du champ
 ## focus (UI Automation, jamais son contenu, jamais les mots de passe) et decide avec des regles + un
-## petit modele local (llama-server, 127.0.0.1). Rien n'est envoye sur Internet.
+## petit modele de CHOIX local (stuntd : encodeur Laya fige + tetes de classification) ; rien n est genere
+## et rien n est envoye sur Internet.
 ##
 ## Reglages (GameState.settings) :
 ##   "suggestions" (false par defaut) : active la fonction (opt-in).
-##   "ai_gpu"      (true par defaut)  : modele sur la carte graphique (Vulkan) ou sur le processeur.
+##   "ai_gpu"      (true par defaut)  : vision sur la carte graphique (DirectML) ou le processeur (le texte
+##                                      tourne toujours sur le processeur : DirectML etait plus lent ici).
+##   "ai_model"    : ignore (seul Laya multilingual est livre, en ONNX).
+##   "vision"      (false par defaut) : le service tourne aussi pour VisionClient (voir vision_client.gd).
 ##
 ## ------------------------------------------------------------------------------------------ CABLAGE
 ## Dans scripts/desktop/desktop_controller.gd :
@@ -47,15 +51,16 @@ signal decided(request_id: int, answer: String, confidence: float)
 
 const SETTING := "suggestions"
 const GPU_SETTING := "ai_gpu"
+const VISION_SETTING := "vision"
 const PENDING_TTL := 6.0
 
-## Dossier "assistant" (service.py, .venv, llama, models). Vide = detection automatique.
+## Dossier "assistant" (service.py, .venv, laya_model, heads). Vide = detection automatique.
 var assistant_dir := ""
 var min_confidence := 0.45
 var cooldown := 20.0  ## s avant de reproposer la meme chose pour le meme champ
 var focus_debounce := 0.15
 var use_gpu := true
-var model := ""  ## fichier .gguf dans assistant/models ("" = defaut du service ; reglage "ai_model")
+var model := ""  ## checkpoint Laya : "multilingual" | "english" ("" = defaut du service ; reglage "ai_model")
 var respect_setting := true  ## tests : false pour piloter start()/stop() a la main
 ## Appele a chaque focus : renvoie les textes copies, du plus recent au plus ancien
 ## (String, ou Dictionary avec une cle "text").
@@ -63,7 +68,7 @@ var candidates_provider: Callable
 var candidates: Array = []  ## alternative a candidates_provider
 
 var state := "off"
-var llm_state := ""  ## loading | ready | off | error (etat du modele dans le service)
+var model_state := ""  ## loading | ready | off | error (etat des tetes stuntd dans le service)
 var backend := ""
 var last_field := {}
 var last_result := {}
@@ -98,7 +103,8 @@ func setup() -> void:
 func _sync_setting() -> void:
 	if not respect_setting:
 		return
-	var want := bool(GameState.settings.get(SETTING, false))
+	# un seul service pour les suggestions ET la vision (VisionClient le reutilise)
+	var want := bool(GameState.settings.get(SETTING, false)) or bool(GameState.settings.get(VISION_SETTING, false))
 	var gpu := bool(GameState.settings.get(GPU_SETTING, true))
 	if want and state != "off" and gpu != use_gpu:
 		stop()  # changement CPU/GPU : on relance
@@ -149,8 +155,8 @@ func start() -> bool:
 	var m := model
 	if m == "" and respect_setting:
 		m = str(GameState.settings.get("ai_model", ""))
-	if m != "" and not m.contains("/") and not m.contains("\\"):  # un nom de fichier, rien d'autre
-		args.append_array(["--model", m])
+	if m in ["multilingual", "english"]:
+		args.append_array(["--base", m])
 	_pid = OS.create_process(py, args, false)
 	if _pid <= 0:
 		_set_state("error", "lancement du service impossible")
@@ -166,7 +172,7 @@ func start() -> bool:
 func stop() -> void:
 	if _pid > 0:
 		if state == "ready":
-			# arret propre (le service arrete aussi llama-server) ; OS.kill en secours
+			# arret propre ; OS.kill en secours
 			var r := HTTPRequest.new()
 			add_child(r)
 			r.timeout = 1.0
@@ -186,13 +192,13 @@ func stop() -> void:
 	_focus_busy = false
 	_suggest_busy = false
 	_pending = {}
-	llm_state = ""
+	model_state = ""
 	_set_state("off")
 
 
 func _exit_tree() -> void:
 	if _pid > 0:
-		OS.kill(_pid)  # le service tue llama-server via son Job Object
+		OS.kill(_pid)  # un seul processus : rien d autre a arreter
 		_pid = -1
 
 
@@ -230,6 +236,15 @@ func _headers() -> PackedStringArray:
 	return PackedStringArray(["X-Pompom-Token: " + _token, "Content-Type: application/json"])
 
 
+## Pour VisionClient (meme service, meme jeton) : "" tant que le service n'est pas pret.
+func api_base() -> String:
+	return _base if state == "ready" else ""
+
+
+func api_headers() -> PackedStringArray:
+	return _headers()
+
+
 # =========================================================================== boucle
 func _process(delta: float) -> void:
 	if state == "off" or state == "error":
@@ -242,7 +257,7 @@ func _process(delta: float) -> void:
 	_health_t -= delta
 	if _health_t <= 0.0 and _health_req.get_http_client_status() == HTTPClient.STATUS_DISCONNECTED:
 		# pendant le demarrage : souvent ; ensuite : pour suivre l'etat du modele
-		_health_t = 0.25 if state == "starting" else (1.0 if llm_state == "loading" else 10.0)
+		_health_t = 0.25 if state == "starting" else (1.0 if model_state == "loading" else 10.0)
 		_health_req.request(_base + "/health")
 	if state == "starting" and _start_t > 20.0:
 		stop()
@@ -265,7 +280,7 @@ func _on_health(result: int, code: int, _h, body: PackedByteArray) -> void:
 	var d = JSON.parse_string(body.get_string_from_utf8())
 	if typeof(d) != TYPE_DICTIONARY:
 		return
-	llm_state = str(d.get("llm", ""))
+	model_state = str(d.get("heads", ""))
 	backend = str(d.get("backend", ""))
 	if state == "starting":
 		_set_state("ready")
@@ -373,16 +388,16 @@ func take_pending():
 
 
 # =========================================================================== decisions de jeu
-## Decision typee generique (< ~100 ms sur GPU) : reponse = une des options.
+## Decision typee generique (choix zero-shot Laya, ~100 ms) : reponse = une des options.
 ## Le resultat arrive par le signal decided(request_id, answer, confidence) ; answer = "" si echec.
 func decide(question: String, options: Array, context := "") -> int:
 	var id := _next_decide
 	_next_decide += 1
-	if state != "ready" or llm_state != "ready":
+	if state != "ready" or model_state == "error":  # "unloaded" : le service recharge a la demande
 		decided.emit.call_deferred(id, "", 0.0)
 		return id
 	var r := HTTPRequest.new()
-	r.timeout = 3.0
+	r.timeout = 20.0  # peut attendre un rechargement du modele (~5 s)
 	add_child(r)
 	r.request_completed.connect(func(res: int, c: int, _hh, b: PackedByteArray):
 		r.queue_free()

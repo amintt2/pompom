@@ -1,6 +1,6 @@
 """Test de bout en bout du service (sans Godot) : demarrage, securite, /suggest, /decide, arret.
 
-  python tests/smoke_service.py [--cpu] [--no-llm] [--model X.gguf]
+  python tests/smoke_service.py [--cpu] [--no-model] [--base multilingual|english]
 """
 
 from __future__ import annotations
@@ -37,17 +37,18 @@ def call(port, path, body=None, token="", headers=None, timeout=10):
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--cpu", action="store_true")
-    ap.add_argument("--no-llm", action="store_true")
-    ap.add_argument("--model", default="")
+    ap.add_argument("--no-model", action="store_true")
+    ap.add_argument("--no-vision", action="store_true")
+    ap.add_argument("--base", default="")
     ap.add_argument("--port", type=int, default=47831)
     a = ap.parse_args()
     token = secrets.token_hex(12)
     args = [str(PY), str(ROOT / "service.py"), "--port", str(a.port), "--token", token, "--no-focus"]
     args += ["--cpu"] if a.cpu else ["--gpu"]
-    if a.no_llm:
-        args.append("--no-llm")
-    if a.model:
-        args += ["--model", a.model]
+    if a.no_model:
+        args.append("--no-model")
+    if a.base:
+        args += ["--base", a.base]
     t0 = time.time()
     p = subprocess.Popen(args, creationflags=0x08000000)
     ok = True
@@ -74,14 +75,14 @@ def main() -> int:
         ok &= st == 200 and s["kind"] == "email" and s["index"] == 1 and s["label_fr"] == "Coller ton email ?"
         st, s = call(a.port, "/suggest", {"field": {"skip": "password"}, "candidates": cands}, token)
         ok &= s["index"] == -1 and s["skip"] == "password"
-        if not a.no_llm:
-            while time.time() - t0 < 120:
+        if not a.no_model:
+            while time.time() - t0 < 180:
                 h = call(a.port, "/health")[1]
-                if h["llm"] in ("ready", "error"):
+                if h["heads"] in ("ready", "error"):
                     break
                 time.sleep(0.2)
-            print(f"llm {h['llm']} ({h['backend']}) after {time.time() - t0:.2f}s")
-            ok &= h["llm"] == "ready"
+            print(f"heads {h['heads']} ({h['backend']}) after {time.time() - t0:.2f}s")
+            ok &= h["heads"] == "ready"
             amb = {"control_type": "edit", "name": "Chercher", "process": "chrome.exe",
                    "window_title": "Plans - OpenStreetMap", "is_password": False}
             st, s = call(a.port, "/suggest", {"field": amb, "candidates": ["vélo électrique occasion",
@@ -96,11 +97,29 @@ def main() -> int:
                                                                      "8 place Bellecour 69002 Lyon"]}, token)
                 lat.append((time.perf_counter() - t) * 1000)
             lat.sort()
-            print(f"suggest via HTTP avec modele (kind+pick) : p50={statistics.median(lat):.1f} ms p95={lat[int(0.95 * 19)]:.1f} ms")
+            print(f"suggest via HTTP avec tetes stuntd (kind+pick) : p50={statistics.median(lat):.1f} ms p95={lat[int(0.95 * 19)]:.1f} ms")
             st, d = call(a.port, "/decide", {"question": "Le compagnon a faim et il est 13h. Que fait-il ?",
                                              "options": ["manger", "dormir", "jouer"]}, token)
             print("decide ->", st, d)
             ok &= st == 200 and d["answer"] in ("manger", "dormir", "jouer")
+        if not a.no_vision:
+            st, v = call(a.port, "/vision", token=token)
+            ok &= st == 200 and v["enabled"] is False  # opt-in : rien ne tourne par defaut
+            st, v = call(a.port, "/vision/enable", {"on": True}, token)
+            t1 = time.time()
+            while time.time() - t1 < 60 and not v.get("ready"):
+                time.sleep(0.5)
+                v = call(a.port, "/vision", token=token)[1]
+            print(f"vision prete en {time.time() - t1:.1f}s :", {k: v.get(k) for k in ("backend", "top", "probs", "video_rect", "fullscreen", "paused", "ms")})
+            ok &= bool(v.get("ready")) and len(v.get("probs", {})) == 7 and abs(sum(v["probs"].values()) - 1) < 0.01
+            st, v = call(a.port, "/vision/pause", {"paused": True}, token)
+            time.sleep(2.0)
+            v = call(a.port, "/vision", token=token)[1]
+            print("pause demandee ->", v.get("paused"))
+            ok &= v.get("paused") == "client"
+            call(a.port, "/vision/pause", {"paused": False}, token)
+            st, v = call(a.port, "/vision/enable", {"on": False}, token)
+            ok &= v["enabled"] is False
         call(a.port, "/shutdown", {}, token)
         p.wait(10)
         print("shutdown OK, code", p.returncode)

@@ -1990,6 +1990,7 @@ func _build_settings_page() -> Control:
 	_setting_row(g4, "Tenir mes captures d'écran", "Quand tu fais une capture (Outil Capture d'écran, Win+Maj+S), il la garde sur sa tête. Clique-le pour la recopier.", _toggle_setting("screenshots"))
 	_setting_row(g4, "Garder ce que je copie", "Il se souvient de tout ce que tu copies (presse-papiers) pour le retrouver facilement.", _toggle_setting("clipboard"))
 	_setting_row(g4, "Suggestions intelligentes", "Une IA locale lui donne des idées. Rien ne quitte ton PC.", _toggle_setting("suggestions"))
+	_setting_row(g4, "Il regarde ton écran (bêta)", "Une IA locale devine si tu joues, regardes une vidéo ou travailles, et où est la vidéo : il va s'asseoir dessous pour la regarder avec toi. Les images restent en mémoire sur ton PC, jamais enregistrées ni envoyées. Nécessite l'assistant installé.", _toggle_setting("vision"))
 	_setting_row(g4, "IA sur la carte graphique", "Plus rapide. Désactive-le si ton PC ralentit.", _toggle_setting("ai_gpu"), false)
 
 	var g3 := _group(col, "Système", "gear", "", UITheme.MINT)
@@ -2070,7 +2071,7 @@ func _option_index(key: String) -> int:
 ## Valeurs par defaut des reglages qui peuvent manquer dans une vieille sauvegarde.
 const SETTING_DEFAULTS := {"eat_files": true, "clipboard": false, "suggestions": false, "ai_gpu": true,
 	"screenshots": true, "share_visible": true, "auto_update": true, "competitive_hide": true, "game_saver": true,
-	"game_events": true, "hud_watch": false, "rl_screen_watch": false}
+	"game_events": true, "hud_watch": false, "rl_screen_watch": false, "vision": false}
 
 
 static func setting_on(key: String) -> bool:

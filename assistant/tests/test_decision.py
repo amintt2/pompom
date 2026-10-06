@@ -1,7 +1,7 @@
 """Tests unitaires de la couche de decision.
 
   .venv\\Scripts\\python.exe -m unittest discover -s tests -v
-  set POMPOM_TEST_LLM=gpu   (ou cpu) pour inclure les tests avec le modele local (plus lents)
+  set POMPOM_TEST_HEADS=1   pour inclure les tests avec les tetes stuntd en ONNX (models/, ~10 s de plus)
 """
 
 from __future__ import annotations
@@ -102,43 +102,52 @@ class Suggest(unittest.TestCase):
         self.assertGreaterEqual(acc, 0.85)
 
 
-@unittest.skipUnless(os.environ.get("POMPOM_TEST_LLM"), "POMPOM_TEST_LLM non defini")
-class WithModel(unittest.TestCase):
-    server = None
-    dec = None
+@unittest.skipUnless(os.environ.get("POMPOM_TEST_HEADS") and (ROOT / "models" / "heads.json").exists(),
+                     "POMPOM_TEST_HEADS non defini, ou models/ absent")
+class WithHeads(unittest.TestCase):
+    heads = None
 
     @classmethod
     def setUpClass(cls):
-        from pompom_assist.llm import LlamaClient, LlamaServer, ServerConfig
+        from pompom_assist.heads import OnnxHeads
 
-        cls.server = LlamaServer(ServerConfig(gpu=os.environ["POMPOM_TEST_LLM"] == "gpu"))
-        assert cls.server.start() and cls.server.wait_ready(120), cls.server.error
-        cls.dec = Decider(LlamaClient(cls.server.base, 30, cls.server.api_key))
+        cls.heads = OnnxHeads(gpu=False)  # le service fait tourner le texte sur CPU
+        cls.heads.warm()
 
-    @classmethod
-    def tearDownClass(cls):
-        if cls.server:
-            cls.server.stop()
-
-    def test_hybrid_accuracy_heldout(self):
+    def _acc(self, mode):
+        dec = Decider(self.heads, mode=mode)
         rows = load("test")
-        ok = 0
-        lat = []
+        ok, lat = 0, []
         for r in rows:
             t = time.perf_counter()
-            s = self.dec.suggest(r["field"], r["candidates"])
+            s = dec.suggest(r["field"], r["candidates"])
             lat.append((time.perf_counter() - t) * 1000)
             ok += s.kind == r["kind"] and s.index == r["best"]
         lat.sort()
         acc = ok / len(rows)
-        print(f"\n  hybride ({self.server.backend}), jeu test : {acc:.3f}  p50={lat[len(lat) // 2]:.1f} ms  "
+        print(f"\n  {mode} ({self.heads.backend}), jeu test : {acc:.3f}  p50={lat[len(lat) // 2]:.1f} ms  "
               f"p95={lat[int(len(lat) * 0.95)]:.1f} ms")
-        self.assertGreaterEqual(acc, 0.93)
+        return acc
+
+    def test_hybrid_accuracy_heldout(self):
+        self.assertGreaterEqual(self._acc("hybrid"), 0.93)
+
+    def test_heads_only_runs(self):
+        self.assertGreaterEqual(self._acc("heads"), 0.5)
+
+    def test_heads_are_classifiers(self):
+        from pompom_assist import rules
+        a = self.heads.ask("field_kind", "app: chrome.exe | window: Inscription | control: edit | name: Adresse e-mail")
+        self.assertIn(a.label, rules.FIELD_KINDS)
+        self.assertAlmostEqual(sum(a.probs.values()), 1.0, places=3)
+        a = self.heads.ask("text_kind", "field: search | app: chrome.exe | window: Google Maps | control: edit"
+                           " | name: Rechercher | copied: text, address", allowed=["text", "address"])
+        self.assertIn(a.label, ["text", "address"])
 
     def test_generic_choice(self):
-        c = self.dec.choose("Le compagnon a très faim. Que fait-il ?", ["manger", "dormir", "jouer"])
-        self.assertIn(c.answer, ["manger", "dormir", "jouer"])
-        self.assertAlmostEqual(sum(c.probs.values()), 1.0, places=3)
+        c = Decider(self.heads).choose("Le compagnon a très faim. Que fait-il ?", ["manger", "dormir", "jouer"])
+        self.assertIn(c.label, ["manger", "dormir", "jouer"])
+        self.assertAlmostEqual(sum(c.probs.values()), 1.0, places=2)
 
 
 if __name__ == "__main__":

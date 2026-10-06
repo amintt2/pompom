@@ -1,8 +1,8 @@
 extends Node
 ## Test de bout en bout du SuggestClient : demarre le service local, envoie un faux champ + des textes
-## copies, verifie la suggestion, une decision generique, puis l'arret (service + llama-server).
+## copies, verifie la suggestion, une decision generique, puis l arret du service.
 ##
-##   tools\godot\Godot_v4.7.2-stable_win64_console.exe --headless --path godot res://tests/suggest_test.tscn [-- --cpu] [-- --no-llm]
+##   tools\godot\Godot_v4.7.2-stable_win64_console.exe --headless --path godot res://tests/suggest_test.tscn [-- --cpu] [-- --no-model]
 ## Code de sortie 0 = OK.
 
 var client: SuggestClient
@@ -38,12 +38,12 @@ func _ready() -> void:
 	await _suggest({"skip": "password"}, ["hunter2", "lea.martin@gmail.com"])
 	_check(got.is_empty() and int(client.last_result.get("index", 0)) == -1, "mot de passe ignore")
 
-	if not OS.get_cmdline_user_args().has("--no-llm"):
+	if not OS.get_cmdline_user_args().has("--no-model"):
 		var t1 := Time.get_ticks_msec()
-		while client.llm_state != "ready" and client.llm_state != "error" and Time.get_ticks_msec() - t1 < 90000:
+		while client.model_state != "ready" and client.model_state != "error" and Time.get_ticks_msec() - t1 < 90000:
 			await get_tree().create_timer(0.2).timeout
-		print("modele : %s (%s) apres %d ms" % [client.llm_state, client.backend, Time.get_ticks_msec() - t0])
-		_check(client.llm_state == "ready", "modele charge")
+		print("modele : %s (%s) apres %d ms" % [client.model_state, client.backend, Time.get_ticks_msec() - t0])
+		_check(client.model_state == "ready", "modele charge")
 		# 3) cas ambigu : recherche sur une carte -> l'adresse plutot que la phrase (le modele tranche)
 		got = {}
 		var t2 := Time.get_ticks_msec()
@@ -67,10 +67,7 @@ func _ready() -> void:
 	var pid := client._pid
 	client.stop()
 	await get_tree().create_timer(2.5).timeout
-	_check(not OS.is_process_running(pid), "service arrete")
-	var out := []
-	OS.execute("tasklist", ["/FI", "IMAGENAME eq llama-server.exe", "/NH"], out)
-	_check(not str(out).contains("llama-server.exe"), "llama-server arrete")
+	_check(not OS.is_process_running(pid), "service arrete (un seul processus : encodeur + tetes dedans)")
 	print("SUGGEST TEST: ", "OK" if fails == 0 else "%d ECHEC(S)" % fails)
 	get_tree().quit(0 if fails == 0 else 1)
 

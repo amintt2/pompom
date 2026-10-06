@@ -1,14 +1,22 @@
-# Pompom - installation de l'assistant local (une seule fois, ~1,1 Go a telecharger).
-#   powershell -ExecutionPolicy Bypass -File assistant\setup.ps1 [-Light] [-Python C:\chemin\python.exe]
-# -Light : modele Qwen2.5-0.5B (491 Mo, Apache-2.0) au lieu de Llama-3.2-1B (808 Mo, meilleur).
+# Pompom - installation de l'assistant local.
+#
+# Installation normale (joueurs) : SANS PyTorch.
+#   powershell -ExecutionPolicy Bypass -File assistant\setup.ps1
+#   -> .venv (Python 3.11 + onnxruntime-directml, numpy, tokenizers, pillow, mss, comtypes : ~170 Mo)
+#   -> verifie models\ (~690 Mo d'ONNX : livres avec le jeu, ou fabriques par -Dev ci-dessous)
+#
+# Developpement (une fois, pour fabriquer models\) :
+#   powershell -ExecutionPolicy Bypass -File assistant\setup.ps1 -Dev [-Retrain]
+#   -> dev\.venv (torch 2.4.1 CPU + torch-directml + stuntd[train] + laya + transformers<5 + onnx : ~1,5 Go)
+#   -> dev\laya_model (Laya multilingual, Apache-2.0), dev\siglip (SigLIP base ONNX, Apache-2.0)
+#   -> dev\heads : tetes stuntd (re)entrainees hors ligne si absentes ou -Retrain (CPU, ~1 h 30)
+#   -> export_onnx.py ecrit models\
 # Apres l'installation, plus rien ne passe par Internet.
-param([switch]$Light, [string]$Python = "")
+param([switch]$Dev, [switch]$Retrain, [string]$Python = "")
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
-$build = 'b11443'  # version de llama.cpp testee
 Set-Location $root
 
-# 1) Python 3.11 + venv (dependance unique : comtypes, pour UI Automation)
 if (-not $Python) {
     $cands = @("$env:LOCALAPPDATA\Programs\Python\Python311\python.exe", "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe")
     $Python = $cands | Where-Object { Test-Path $_ } | Select-Object -First 1
@@ -17,35 +25,33 @@ if (-not $Python) {
     Write-Host "Python 3.11 introuvable : winget install --id Python.Python.3.11 --scope user"
     exit 1
 }
+
+# ---------------------------------------------------------------- execution (toujours)
 if (-not (Test-Path .venv\Scripts\python.exe)) { & $Python -m venv .venv }
-& .venv\Scripts\python.exe -m pip install -q --upgrade pip
-& .venv\Scripts\python.exe -m pip install -q "comtypes>=1.4"
+# --no-deps : onnxruntime et tokenizers tireraient sympy, huggingface_hub, httpx... inutiles ici (~100 Mo)
+& .venv\Scripts\python.exe -m pip install -q --no-deps "onnxruntime-directml==1.24.4" "numpy>=2,<3" "tokenizers==0.23.2" "pillow>=11" "mss>=10" "comtypes>=1.4"
 
-# 2) llama.cpp officiel (Vulkan pour AMD/NVIDIA/Intel + CPU en secours)
-foreach ($k in 'vulkan', 'cpu') {
-    if (-not (Test-Path "llama\$k\llama-server.exe")) {
-        $zip = "llama\llama-$build-$k.zip"
-        New-Item -ItemType Directory -Force "llama\$k" | Out-Null
-        Invoke-WebRequest -UseBasicParsing "https://github.com/ggml-org/llama.cpp/releases/download/$build/llama-$build-bin-win-$k-x64.zip" -OutFile $zip
-        Expand-Archive $zip -DestinationPath "llama\$k" -Force
-        Remove-Item $zip
-    }
+if ($Dev) {
+    New-Item -ItemType Directory -Force dev | Out-Null
+    if (-not (Test-Path dev\.venv\Scripts\python.exe)) { & $Python -m venv dev\.venv }
+    $py = "dev\.venv\Scripts\python.exe"
+    & $py -m pip install -q --upgrade pip
+    # torch-directml impose torch 2.4.1 ; transformers 5 demande un torch plus recent -> transformers<5
+    & $py -m pip install -q "torch-directml==0.2.5.dev240914" "stuntd[train]==0.1.3" "transformers>=4.48,<5" `
+        "onnx" "onnxruntime-directml==1.24.4" "comtypes>=1.4" "mss>=10" "psutil"
+    & $py -c "from huggingface_hub import snapshot_download as d; d('convaiinnovations/laya', local_dir='dev/laya_model', allow_patterns=['multilingual/rl_agent_config.json','multilingual/model.safetensors','multilingual/tokenizer/*','multilingual/encoder/*','README.md'])"
+    & $py -c "from huggingface_hub import snapshot_download as d; d('Xenova/siglip-base-patch16-224', local_dir='dev/siglip', allow_patterns=['onnx/vision_model_fp16.onnx','onnx/text_model.onnx','*.json'])"
+    & $py data\gen_synthetic.py | Out-Null
+    if ($Retrain -or -not (Test-Path dev\heads\text_kind\head.safetensors)) { & $py train_heads.py }
+    & $py export_onnx.py
 }
 
-# 3) modele GGUF (Hugging Face)
-New-Item -ItemType Directory -Force models | Out-Null
-$models = @(
-    @{ f = 'Llama-3.2-1B-Instruct-Q4_K_M.gguf'; u = 'https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q4_K_M.gguf' },
-    @{ f = 'qwen2.5-0.5b-instruct-q4_k_m.gguf'; u = 'https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf' }
-)
-if ($Light) { $models = @($models[1]) }
-foreach ($m in $models) {
-    if (-not (Test-Path "models\$($m.f)")) {
-        Write-Host "Telechargement $($m.f)..."
-        Invoke-WebRequest -UseBasicParsing $m.u -OutFile "models\$($m.f).part"
-        Move-Item "models\$($m.f).part" "models\$($m.f)"
-    }
+$need = @('laya_encoder.mixed.onnx', 'head_field_kind.fp16.onnx', 'head_text_kind.fp16.onnx', 'head_base.fp16.onnx',
+          'heads.json', 'laya_tokenizer.json', 'siglip_vision.fp16.onnx', 'siglip_prompts.npz', 'siglip_logit.json')
+$missing = $need | Where-Object { -not (Test-Path "models\$_") }
+if ($missing) {
+    Write-Host "models\ incomplet ($($missing -join ', ')) : copiez models\ livre avec le jeu, ou lancez setup.ps1 -Dev."
+    Write-Host "Sans models\, les suggestions marchent quand meme (regles seules) ; la vision reste desactivee."
+    exit 2
 }
-& .venv\Scripts\python.exe data\gen_synthetic.py | Out-Null
 Write-Host "OK. Test : .venv\Scripts\python.exe tests\smoke_service.py"
-if ($Light) { Write-Host "Mode leger : definir POMPOM_ASSIST_MODEL=qwen2.5-0.5b-instruct-q4_k_m.gguf" }

@@ -87,6 +87,10 @@ travaille avec toi, joue avec toi… et mange tes vieux fichiers.
 - **Économie en jeu** : pendant tes parties il passe à 30 images/s pour ne pas te coûter de FPS.
 - Détails, sources et limites : [docs/game_events.md](docs/game_events.md).
 
+### Il regarde ton écran (optionnel, bêta)
+- Une IA de vision locale devine ce que tu fais (jeu, vidéo, code, documents, web, discussion) et **où est la vidéo** : il va s'asseoir dessous pour la regarder avec toi.
+- Une analyse toutes les 3 s, en pause pendant les jeux plein écran. Les images ne quittent jamais la mémoire de ton PC.
+
 ### Petit assistant (optionnel)
 - **Gardien du presse-papiers** : ce que tu copies (image, texte, fichiers) apparaît sur sa tête.
   - Clic sur la carte : il la recopie. Glisse-la dehors : il la dépose.

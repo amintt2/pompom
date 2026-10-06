@@ -1,7 +1,9 @@
-# gros fichiers telecharges par setup.ps1
-models/
-llama/
+# installation d'execution (setup.ps1) et modeles ONNX (~690 Mo : livres avec le jeu, ou setup.ps1 -Dev)
 .venv/
+models/
+# environnement de developpement : PyTorch, checkpoints Laya / SigLIP, tetes stuntd entrainees
+dev/
+data/train*.jsonl
 __pycache__/
 *.pyc
 *.part

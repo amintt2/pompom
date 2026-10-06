@@ -74,6 +74,9 @@ var _mouse_dist := INF
 var _cap_interval := 0.15
 var games: GameEvents
 var situations: PetSituations
+var vision: VisionClient
+var _video_rect := Rect2()
+var _vision_cd := 20.0
 var _guest_win: Window  # fenetre de mini-jeu ou il est assis
 var _guest_away := 0.0
 var _guest_cd := 0.0
@@ -143,6 +146,12 @@ func setup(p_stage: PetStage, p_emotes: EmoteLayer) -> void:
 	situations.say_callback = func(t: String): _say(t)
 	situations.follow_activity = true
 	situations.can_switch = func(_sid: String) -> bool: return mode in ["normal", "video"] and state == "ground"
+	vision = VisionClient.new()
+	vision.name = "Vision"
+	vision.service = suggest
+	add_child(vision)
+	vision.vision_changed.connect(_on_vision)
+	vision.setup()
 	updater = Updater.new()
 	updater.name = "Updater"
 	add_child(updater)
@@ -604,6 +613,7 @@ func _on_game_changed(_proc: String, genre: String) -> void:
 
 func _game_tick(delta: float) -> void:
 	_game_react_cd = maxf(0.0, _game_react_cd - delta)
+	_vision_cd = maxf(0.0, _vision_cd - delta)
 	# retour dans la fenetre du mini-jeu quand elle repasse au premier plan
 	_guest_cd = maxf(0.0, _guest_cd - delta)
 	if is_instance_valid(_guest_win) and _guest_cd <= 0.0 and state in ["ground", "walk"] and _guest_win.has_focus():
@@ -655,6 +665,38 @@ func _ask_game_setup(entry: Array) -> void:
 		_say("D'accord ! Tu pourras changer d'avis dans les réglages.")
 		dlg.queue_free())
 	dlg.popup_centered()
+
+
+# =========================================================================== vision (option)
+## Ce que l'IA locale voit a l'ecran : une video -> il va s'asseoir dessous et la regarde avec toi ;
+## un jeu (meme inconnu du catalogue) -> il sort sa manette si tu en as une.
+func _on_vision(top: String, probs: Dictionary, video_rect: Rect2, fullscreen: bool) -> void:
+	var video_like := top == "video" or float(probs.get("video", 0.0)) > 0.45
+	_video_rect = video_rect if video_like else Rect2()
+	if _vision_cd > 0.0 or fullscreen or state != "ground" or pet.sleeping or mode not in ["normal", "video"]:
+		return
+	if _video_rect.has_area():
+		_vision_cd = 60.0
+		_watch_video()
+	elif top == "game" and float(probs.get("game", 0.0)) > 0.6 and not pet.busy \
+			and not Input.get_connected_joypads().is_empty():
+		_vision_cd = 90.0
+		pet.act_gaming(randf_range(30.0, 60.0))
+
+
+func _watch_video() -> void:
+	if situations:
+		situations.stop()
+	pet.stop_action()
+	# sous la video (sur la barre des taches de cet ecran), puis il se tourne vers elle
+	var sc := DisplayServer.get_screen_from_rect(Rect2i(_video_rect))
+	if sc != _screen():
+		return  # video sur un autre ecran : il ne traverse pas les ecrans
+	await _walk_to(_video_rect.get_center().x - W * 0.5)
+	if state != "ground" or not _video_rect.has_area():
+		return
+	if not situations.play("video_watch", randf_range(45.0, 80.0)):
+		pet.act_popcorn(randf_range(30.0, 60.0))
 
 
 ## Images par seconde, sur-echantillonnage et frequence de capture selon la situation :
