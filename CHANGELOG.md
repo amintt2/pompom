@@ -3,6 +3,11 @@
 Toutes les versions de Pompom. Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/)
 et les numéros suivent [SemVer](https://semver.org/lang/fr/).
 
+## [0.5.4-beta] - 2026-10-06
+
+### Corrigé
+- **Accessoires portés en noir dans la boutique** : les miniatures préparées pendant que la boutique était cachée (préchargement au démarrage) sortaient noires. Elles sont maintenant dessinées à l'ouverture, et une miniature ratée est refaite.
+
 ## [0.5.3-beta] - 2026-10-06
 
 ### Il suit la vidéo

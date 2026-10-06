@@ -4,6 +4,10 @@ extends Node
 
 func _ready() -> void:
 	GameState.no_save = true
+	for id in ["crown", "bow_tie"]:
+		if Data.ITEMS.has(id):
+			GameState.owned[id] = true
+			GameState.equipped[Data.ITEMS[id]["slot"]] = id
 	await get_tree().create_timer(1.0).timeout
 	for i in 4:
 		var t0 := Time.get_ticks_usec()
@@ -29,7 +33,9 @@ func _ready() -> void:
 		await RenderingServer.frame_post_draw
 		var t2 := Time.get_ticks_usec()
 		print("SHOP open call=%.1fms first_frame=%.1fms" % [(t1 - t0) / 1000.0, (t2 - t0) / 1000.0])
-		await get_tree().create_timer(1.0).timeout
+		await get_tree().create_timer(6.0 if i == 0 else 1.0).timeout
+		if i == 0:
+			shop.get_texture().get_image().save_png(ProjectSettings.globalize_path("user://shop_prebuilt.png"))
 		shop.close_shop()
 		await get_tree().create_timer(0.5).timeout
 		print("SHOP after close: valid=%s visible=%s" % [is_instance_valid(shop), shop.visible])

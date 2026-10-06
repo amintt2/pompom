@@ -108,6 +108,11 @@ static func key_for(kind: String, id: String) -> String:
 
 
 func _process(_delta: float) -> void:
+	# une fenetre cachee ne dessine rien : on attend qu'elle soit visible (sinon miniatures noires)
+	var host := get_parent().get_window() if get_parent() else null
+	if host and not host.visible:
+		_frames = 0
+		return
 	if _job.is_empty():
 		while not _queue.is_empty():
 			var j: Dictionary = _queue.pop_front()
@@ -132,6 +137,12 @@ func _process(_delta: float) -> void:
 	if _frames < 3:
 		return
 	var img := get_texture().get_image()
+	if img == null or img.detect_alpha() == Image.ALPHA_NONE:
+		# rendu rate (image opaque, fond noir) : on recommence (quelques essais au plus)
+		_job["tries"] = int(_job.get("tries", 0)) + 1
+		if _job["tries"] < 4:
+			_frames = 0
+			return
 	# bords alpha propres + mipmaps : reduction nette et sans franges sombres
 	img.fix_alpha_edges()
 	img.generate_mipmaps()
