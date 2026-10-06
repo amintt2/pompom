@@ -220,6 +220,17 @@ func _vision_react_test() -> void:
 	var dc := get_node_or_null("Desktop")
 	var u := DisplayServer.screen_get_usable_rect(DisplayServer.window_get_current_screen())
 	var vr := Rect2(u.position.x + u.size.x * 0.25, u.position.y + 100, 640, 360)
+	Activity.set_process(false)
+	Activity.category = "browse"
+	Activity.proc_name = "chrome"
+	Activity.fullscreen = false
+	Activity.meeting = false
+	dc._update_mode()
+	dc._set_taskbar()
+	dc.pos.y = dc._ground_y()
+	dc.situations.stop()
+	dc.state = "ground"
+	await get_tree().create_timer(0.5).timeout
 	var cx0: float = dc._center_x()
 	dc._vision_cd = 0.0
 	stage.pet.stop_action()
@@ -230,6 +241,7 @@ func _vision_react_test() -> void:
 		print("VR t=%d state=%s busy=%s cur=%s playing=%s cx=%d" % [Time.get_ticks_msec() - t0, dc.state, stage.pet.busy, dc.situations.current, dc.situations.is_playing(), dc._center_x()])
 	var cx: float = dc._center_x()
 	var ok: bool = absf(cx - vr.get_center().x) < 80.0 and dc.situations.current == "video_watch"
+	print("VISIONREACT yaw=%.2f (video a gauche -> negatif) taskbar=%s floor=%.0f usable_end=%.0f" % [stage.pet.yaw, Activity.taskbar_rect, dc._taskbar_floor(), dc._usable().end.y])
 	print("VISIONREACT start_cx=%d cx=%d video_cx=%d situation=%s -> %s" % [cx0, cx, vr.get_center().x, dc.situations.current, "OK" if ok else "KO"])
 	await get_tree().create_timer(1.5).timeout
 	get_viewport().get_texture().get_image().save_png(ProjectSettings.globalize_path("user://vision_react.png"))
@@ -401,6 +413,8 @@ func _modes_test() -> void:
 			res["ko"] += 1
 			print("MODES FAIL ", what)
 	print("MODES screens=", DisplayServer.get_screen_count())
+	Activity.meeting = false  # (le vrai PC peut etre en visio pendant le test)
+	Activity.recording = false
 	# 1) en jeu : les bulles vont dans la boite aux lettres
 	Activity.category = "game"
 	Activity.proc_name = "hades"
@@ -416,7 +430,7 @@ func _modes_test() -> void:
 	dc._update_mode()
 	await get_tree().create_timer(1.0).timeout
 	if DisplayServer.get_screen_count() == 1:
-		check.call(dc.state == "peek" and dc._pet_scale_target < 0.7, "periscope en plein ecran")
+		check.call(dc.state == "spot" and dc._pet_scale_target < 0.7 and dc._center_x() < DisplayServer.screen_get_position(DisplayServer.window_get_current_screen()).x + 300.0 * dc.s, "sur le cote en plein ecran")
 	# 3) fin du jeu : recap + courrier livre
 	Activity.category = "work"
 	Activity.fullscreen = false

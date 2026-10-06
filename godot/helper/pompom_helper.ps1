@@ -91,6 +91,14 @@ public static class PW {
     SetWindowLongPtr(h, -20, new IntPtr(ex));
     ShowWindow(h, 4);
   }
+  [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern IntPtr FindWindow(string c, string t);
+  // Barre des taches principale : [x, y, w, h] (en masquage automatique, elle sort presque entierement de l'ecran)
+  public static string Taskbar() {
+    IntPtr t = FindWindow("Shell_TrayWnd", null);
+    RECT r;
+    if (t == IntPtr.Zero || !GetWindowRect(t, out r)) return "[]";
+    return "[" + r.L + "," + r.T + "," + (r.R - r.L) + "," + (r.B - r.T) + "]";
+  }
   public static void KeepTop(IntPtr h) { SetWindowPos(h, new IntPtr(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010); }
 }
 "@
@@ -131,7 +139,7 @@ while ($true) {
       rec   = $recRun
     }
     $json = ($o | ConvertTo-Json -Compress)
-    $json = $json.Substring(0, $json.Length - 1) + ',"wins":' + [PW]::Windows([uint32]$ParentPid) + '}'
+    $json = $json.Substring(0, $json.Length - 1) + ',"wins":' + [PW]::Windows([uint32]$ParentPid) + ',"tb":' + [PW]::Taskbar() + '}'
     [Console]::Out.WriteLine($json)
     [Console]::Out.Flush()
     if ($Hwnd -ne 0) { [PW]::KeepTop([IntPtr]$Hwnd) }

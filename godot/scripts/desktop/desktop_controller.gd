@@ -218,10 +218,21 @@ func _screen_rect() -> Rect2:
 	return Rect2(DisplayServer.screen_get_position(sc), DisplayServer.screen_get_size(sc))
 
 
+## Sol de la barre des taches : son bord haut, meme en masquage automatique (il s'assoit alors en bas de
+## l'ecran et remonte avec elle quand elle apparait).
+func _taskbar_floor() -> float:
+	var u := _usable()
+	var sr := _screen_rect()
+	var tb: Rect2 = Activity.taskbar_rect
+	if tb.size.x > tb.size.y and tb.end.y >= sr.end.y - 4.0 and tb.position.x < sr.end.x and tb.end.x > sr.position.x:
+		return clampf(tb.position.y, u.end.y, sr.end.y)
+	return u.end.y
+
+
 func _ground_y() -> float:
 	# le sol du compagnon (y = 0) tombe exactement sur le bord superieur de sa surface
 	if int(plat["id"]) == 0:
-		return _usable().end.y - H + margin
+		return _taskbar_floor() - H + margin
 	return float(plat["y"]) - H + margin
 
 
@@ -235,13 +246,13 @@ func _center_x() -> float:
 
 func _set_taskbar() -> void:
 	var u := _usable()
-	plat = {"id": 0, "y": u.end.y, "x0": u.position.x, "x1": u.end.x, "rect": Rect2()}
+	plat = {"id": 0, "y": _taskbar_floor(), "x0": u.position.x, "x1": u.end.x, "rect": Rect2()}
 
 
 ## Surfaces disponibles : barre des taches + bords superieurs visibles des fenetres.
 func _platforms() -> Array:
 	var u := _usable()
-	var out: Array = [{"id": 0, "y": u.end.y, "x0": u.position.x, "x1": u.end.x, "rect": Rect2()}]
+	var out: Array = [{"id": 0, "y": _taskbar_floor(), "x0": u.position.x, "x1": u.end.x, "rect": Rect2()}]
 	if not bool(GameState.settings.get("windows", true)):
 		return out
 	var wins: Array = Activity.windows
@@ -285,7 +296,7 @@ func _subtract(segs: Array, a: float, b: float) -> Array:
 func _follow_platform() -> void:
 	if int(plat["id"]) == 0:
 		var u := _usable()
-		plat["y"] = u.end.y
+		plat["y"] = _taskbar_floor()
 		plat["x0"] = u.position.x
 		plat["x1"] = u.end.x
 		return
@@ -673,6 +684,8 @@ func _ask_game_setup(entry: Array) -> void:
 func _on_vision(top: String, probs: Dictionary, video_rect: Rect2, fullscreen: bool) -> void:
 	var video_like := top == "video" or float(probs.get("video", 0.0)) > 0.45
 	_video_rect = video_rect if video_like else Rect2()
+	if situations:
+		situations.watch_point = _video_rect.get_center() if _video_rect.has_area() else Vector2.INF
 	if _vision_cd > 0.0 or fullscreen or state != "ground" or pet.sleeping or mode not in ["normal", "video"]:
 		return
 	if _video_rect.has_area():
@@ -695,6 +708,8 @@ func _watch_video() -> void:
 	await _walk_to(_video_rect.get_center().x - W * 0.5)
 	if state != "ground" or not _video_rect.has_area():
 		return
+	situations.watch_point = _video_rect.get_center()
+	pet.watch_yaw = Pet.yaw_toward(_video_rect.get_center(), Vector2(_center_x(), _foot_y()))
 	if not situations.play("video_watch", randf_range(45.0, 80.0)):
 		pet.act_popcorn(randf_range(30.0, 60.0))
 
@@ -963,8 +978,9 @@ func _process_mouse_near(mouse: Vector2, center: Vector2, to_mouse: Vector2, dis
 			pet.set_expression("happy", 1.2)
 			pet.act_wiggle(1.0)
 	_was_near = near
-	# survol : on voit ses besoins
-	_hover_needs_t = 1.2 if hovering else maxf(0.0, _hover_needs_t - delta)
+	# survol : on voit ses besoins, seulement si l'un d'eux est bas (sinon rien ne vient gener ce qu'il tient)
+	var low_need := minf(minf(GameState.hunger, GameState.energy), minf(GameState.fun, GameState.happiness)) < 35.0
+	_hover_needs_t = 1.2 if (hovering and low_need) else maxf(0.0, _hover_needs_t - delta)
 	hud.show_needs(_hover_needs_t > 0.0 and not _press)
 	# caresses : la souris frotte le compagnon
 	if hovering and moved and not _press:
@@ -1195,6 +1211,8 @@ func _update_mode() -> void:
 		"video":
 			if state == "ground" and not pet.busy and not pet.sleeping:
 				if not situations.play(PetSituations.situation_for_activity(), 45.0):
+					var vp := situations.video_point()
+					pet.watch_yaw = Pet.yaw_toward(vp, Vector2(_center_x(), _foot_y())) if vp != Vector2.INF else PI * 0.82
 					pet.act_popcorn(randf_range(30.0, 60.0))
 		"game":
 			if state == "ground" and not pet.busy and not Input.get_connected_joypads().is_empty():
@@ -1287,11 +1305,25 @@ func _enter_fs() -> void:
 		_pet_scale_target = float(spot.get("scale", 0.8))
 		pet.airborne = false
 		return
-	# 3) periscope : tout petit, au bord bas de l'ecran, seuls les oreilles et les yeux depassent
+	# 3) sur le cote, en bas : il regarde ta partie avec son pop-corn (il plonge si ta souris approche)
 	if bool(GameState.settings.get("hide_fullscreen", false)):
 		_enter_hidden()
 	else:
-		_enter_peek()
+		_enter_side()
+
+
+func _enter_side() -> void:
+	var sr := _screen_rect()
+	_pet_scale_target = 0.6
+	var half := _pet_px() * 0.3
+	pos = Vector2(sr.position.x + 26.0 * s + half - W * 0.5, sr.end.y - H + margin)
+	state = "spot"
+	pet.airborne = false
+	# tourne de trois quarts vers le centre de l'ecran : on voit qu'il regarde, et un peu son visage
+	pet.watch_yaw = 1.15
+	get_tree().create_timer(0.3).timeout.connect(func():
+		if state == "spot" and mode == "fs":
+			pet.act_popcorn(3600.0))
 
 
 func _save_game_spot() -> void:

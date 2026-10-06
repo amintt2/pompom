@@ -50,6 +50,7 @@ var fg_hwnd := 0
 var meeting := false  # visio en cours (Teams, Zoom, Meet...)
 var recording := false  # OBS / logiciel de stream ouvert
 var meet_app_running := false
+var taskbar_rect := Rect2()  # barre des taches principale (vide si inconnue)
 var game_name := ""  # nom lisible du jeu en cours
 
 var _pipe: FileAccess
@@ -152,6 +153,9 @@ func _handle(line: String) -> void:
 		if fg != fg_hwnd:
 			fg_hwnd = fg
 			foreground_changed.emit(fg)
+	var tb = d.get("tb", [])
+	if tb is Array and tb.size() == 4:
+		taskbar_rect = Rect2(float(tb[0]), float(tb[1]), float(tb[2]), float(tb[3]))
 	idle_sec = float(d.get("idle", 0.0))
 	if not bool(d.get("self", false)):
 		proc_name = str(d.get("proc", "")).to_lower()

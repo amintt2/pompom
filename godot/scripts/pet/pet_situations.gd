@@ -254,6 +254,9 @@ var _end_time := 0.0
 var _last_talk := -1000.0
 var _last_emote := -1000.0
 var _cursor_override := Vector2.ZERO
+## Point de l'ecran a regarder pendant une video (donne par la vision) ; sinon deduit de la fenetre au premier plan.
+var watch_point := Vector2.INF
+const WATCH_SIDS := ["video_watch", "movie", "stream_watch"]
 var _cursor_override_t := 0.0
 var _gaze_override := Vector2.ZERO
 var _gaze_override_t := 0.0
@@ -294,6 +297,36 @@ func has_behaviour(sid: String) -> bool:
 
 
 ## Position du curseur (ecran) a suivre des yeux pendant `hold` secondes (sinon : la vraie souris).
+## Orientation du corps : celle de la situation, ou tournee vers la video quand il en regarde une.
+func _spec_yaw(sid: String, spec: Dictionary) -> float:
+	var y := float(spec.get("yaw", 0.0))
+	if not WATCH_SIDS.has(sid):
+		return y
+	var target := video_point()
+	if target == Vector2.INF:
+		return y
+	var me := Vector2(get_window().position) + stage.camera.unproject_position(pet.center_global())
+	var toward := Pet.yaw_toward(target, me)
+	# meme ecart au "dos" que la situation prevoit, mais du bon cote
+	return toward if absf(y) > 1.6 else signf(toward) * absf(y)
+
+
+## Ou est la video a l'ecran : la vision si elle l'a trouvee, sinon une estimation d'apres la fenetre au premier plan.
+func video_point() -> Vector2:
+	if watch_point != Vector2.INF:
+		return watch_point
+	if Activity.windows.is_empty():
+		return Vector2.INF
+	var r: Rect2 = Activity.windows[0]["rect"]
+	if Activity.fullscreen:
+		return r.get_center()
+	var browsers := ["chrome", "msedge", "firefox", "opera", "brave", "vivaldi", "arc", "zen"]
+	if browsers.has(Activity.proc_name):
+		# YouTube, Twitch... : le lecteur occupe le haut gauche de la page
+		return r.position + Vector2(r.size.x * 0.36, r.size.y * 0.4)
+	return r.get_center()
+
+
 func set_cursor(screen_pos: Vector2, hold := 0.5) -> void:
 	_cursor_override = screen_pos
 	_cursor_override_t = hold
@@ -354,7 +387,7 @@ func _start(sid: String, duration: float, flavor: Dictionary, tk: int) -> void:
 	pet.set_base_expression(str(spec.get("expr", "neutral")))
 	pet.breath_amp = float(spec.get("breath", 1.0))
 	var ty := _tw()
-	ty.tween_property(pet, "yaw", float(spec.get("yaw", 0.0)), 0.45).set_trans(Tween.TRANS_SINE)
+	ty.tween_property(pet, "yaw", _spec_yaw(sid, spec), 0.45).set_trans(Tween.TRANS_SINE)
 	for w in spec.get("wear", []):
 		_wear(str(w))
 	var i := 0
@@ -991,7 +1024,7 @@ func _m_glance(tk: int) -> void:
 
 
 func _m_turn_glance(tk: int) -> void:
-	var y0 := float(_spec.get("yaw", 0.0))
+	var y0 := _spec_yaw(current, _spec)
 	var t := _tw()
 	t.tween_property(pet, "yaw", 0.35, 0.35).set_trans(Tween.TRANS_SINE)
 	await t.finished

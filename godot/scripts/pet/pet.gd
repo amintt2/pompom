@@ -1141,11 +1141,24 @@ func act_eat(pref := 0) -> void:
 
 
 ## Regarde une video avec du pop-corn, tourne vers l'ecran (dos a toi).
+## Orientation quand il regarde quelque chose a l'ecran (0 = face a nous, +-PI = vers l'ecran ; + = vers la droite).
+var watch_yaw := PI * 0.82
+
+
+## Orientation pour regarder un point de l'ecran (`me` : sa propre position a l'ecran).
+static func yaw_toward(target: Vector2, me: Vector2) -> float:
+	var dx := target.x - me.x
+	var side := 1.0 if dx >= 0.0 else -1.0
+	# loin sur le cote : de profil ; juste au-dessus : de dos
+	var a := clampf(atan2(absf(dx), maxf(absf(target.y - me.y), 200.0)), 0.25, 1.25)
+	return side * (PI - a)
+
+
 func act_popcorn(dur := 25.0) -> void:
 	var id: int = await _begin()
 	show_prop("popcorn")
 	var t0 := _tw()
-	t0.tween_property(self, "yaw", PI * 0.82, 0.6).set_trans(Tween.TRANS_SINE)
+	t0.tween_property(self, "yaw", watch_yaw, 0.6).set_trans(Tween.TRANS_SINE)
 	await t0.finished
 	set_base_expression("happy")
 	var end_time := Time.get_ticks_msec() + int(dur * 1000.0)

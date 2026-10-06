@@ -3,6 +3,14 @@
 Toutes les versions de Pompom. Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/)
 et les numéros suivent [SemVer](https://semver.org/lang/fr/).
 
+## [0.5.2-beta] - 2026-10-06
+
+### Plus juste
+- **Barre des tâches masquée automatiquement** : il s'assoit tout en bas de l'écran, puis remonte avec la barre quand elle apparaît (et redescend quand elle se cache).
+- **Jeux en plein écran** : au lieu du périscope, il s'installe **sur le côté**, en petit, tourné vers ta partie avec son pop-corn. Il plonge si ta souris approche, et tu peux le poser ailleurs : il retient la place pour ce jeu.
+- **Vidéos** : il se tourne **du côté de la vidéo** (avant, toujours vers la droite).
+- **Besoins** : les jauges n'apparaissent plus au survol que si l'un de ses besoins est bas (elles cachaient ce qu'il tient sur la tête).
+
 ## [0.5.1-beta] - 2026-10-06
 
 ### Corrigé
