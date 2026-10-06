@@ -3,6 +3,20 @@
 Toutes les versions de Pompom. Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/)
 et les numéros suivent [SemVer](https://semver.org/lang/fr/).
 
+## [0.5.3-beta] - 2026-10-06
+
+### Il suit la vidéo
+- Nouveau **détecteur de vidéo intégré** (sans IA, rien à installer) : l'écran est découpé en une grille de cases ; les zones qui bougent sans arrêt sont la vidéo. Il se tourne vers elle, et va s'asseoir dessous si elle est loin.
+- Léger : une analyse par seconde de la seule fenêtre au premier plan (~20 ms sur un fil séparé), uniquement quand il regarde une vidéo.
+- Il ne s'endort plus devant une vidéo (on ne touche ni souris ni clavier, ce n'est pas une absence).
+
+### En jeu
+- En plein écran, il s'accroche au **bord droit de l'écran**, aux deux tiers de la hauteur, à moitié caché, et regarde ta partie. Il glisse derrière le bord quand ta souris approche.
+
+### Corrigé
+- Le menu (clic droit) se ferme dès que tu cliques ailleurs, même avec le clic droit ou dans une autre appli.
+- Mises à jour : si GitHub ne répond pas un instant, il réessaie, puis affiche un message clair (au lieu de « empreinte de sécurité introuvable »).
+
 ## [0.5.2-beta] - 2026-10-06
 
 ### Plus juste

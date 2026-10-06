@@ -311,6 +311,14 @@ func _spec_yaw(sid: String, spec: Dictionary) -> float:
 	return toward if absf(y) > 1.6 else signf(toward) * absf(y)
 
 
+## La video a bouge (ou vient d'etre trouvee) : il se retourne vers elle.
+func refresh_watch() -> void:
+	if not playing or not WATCH_SIDS.has(current):
+		return
+	var t := create_tween()
+	t.tween_property(pet, "yaw", _spec_yaw(current, _spec), 0.6).set_trans(Tween.TRANS_SINE)
+
+
 ## Ou est la video a l'ecran : la vision si elle l'a trouvee, sinon une estimation d'apres la fenetre au premier plan.
 func video_point() -> Vector2:
 	if watch_point != Vector2.INF:

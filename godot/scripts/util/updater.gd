@@ -219,7 +219,16 @@ func install() -> void:
 	DirAccess.make_dir_recursive_absolute(dir)
 	var exe_tmp := dir.path_join("Pompom.new.exe")
 	update_progress.emit("Je télécharge la version %s..." % latest["version"])
-	var sums := await _get_text(latest["sums_url"])
+	# GitHub peut echouer un instant (erreurs serveur) : on reessaie avant d'abandonner
+	var sums := ""
+	for attempt in 3:
+		sums = await _get_text(latest["sums_url"])
+		if sums != "":
+			break
+		await get_tree().create_timer(2.0 + attempt * 3.0).timeout
+	if sums == "":
+		_fail("GitHub ne répond pas pour le moment. Réessaie dans quelques minutes (clic droit → Mettre à jour).")
+		return
 	var expected := ""
 	for line in sums.split("\n"):
 		var parts := line.strip_edges().split(" ", false)
@@ -228,7 +237,13 @@ func install() -> void:
 	if expected.length() != 64:
 		_fail("Empreinte de sécurité introuvable, mise à jour annulée.")
 		return
-	var ok := await _download(latest["exe_url"], exe_tmp)
+	var ok := false
+	for attempt in 3:
+		ok = await _download(latest["exe_url"], exe_tmp)
+		if ok:
+			break
+		update_progress.emit("Le téléchargement a coupé, je réessaie…")
+		await get_tree().create_timer(2.0 + attempt * 3.0).timeout
 	if not ok:
 		_fail("Le téléchargement a échoué.")
 		return

@@ -225,6 +225,12 @@ func _vision_react_test() -> void:
 	Activity.proc_name = "chrome"
 	Activity.fullscreen = false
 	Activity.meeting = false
+	Activity.idle_sec = 1.0
+	if stage.pet.sleeping:
+		stage.pet.wake_up()
+	dc.video_loc.active = false
+	stage.pet.airborne = false
+	dc.video_loc.process_mode = Node.PROCESS_MODE_DISABLED  # (le vrai ecran peut contenir une vraie video)
 	dc._update_mode()
 	dc._set_taskbar()
 	dc.pos.y = dc._ground_y()
@@ -429,8 +435,10 @@ func _modes_test() -> void:
 	Activity.fullscreen = true
 	dc._update_mode()
 	await get_tree().create_timer(1.0).timeout
+	get_viewport().get_texture().get_image().save_png(ProjectSettings.globalize_path("user://side_peek.png"))
+	print("MODES side pos=%s yaw=%.2f scale=%.2f" % [dc.pos, stage.pet.yaw, stage.pet.scale.x])
 	if DisplayServer.get_screen_count() == 1:
-		check.call(dc.state == "spot" and dc._pet_scale_target < 0.7 and dc._center_x() < DisplayServer.screen_get_position(DisplayServer.window_get_current_screen()).x + 300.0 * dc.s, "sur le cote en plein ecran")
+		check.call(dc.state == "spot" and dc._pet_scale_target < 0.8 and dc._center_x() > DisplayServer.screen_get_position(DisplayServer.window_get_current_screen()).x + DisplayServer.screen_get_size(DisplayServer.window_get_current_screen()).x - 200.0 * dc.s, "au bord droit en plein ecran")
 	# 3) fin du jeu : recap + courrier livre
 	Activity.category = "work"
 	Activity.fullscreen = false

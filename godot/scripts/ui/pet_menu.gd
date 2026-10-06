@@ -29,6 +29,7 @@ var _body: Body
 var _f := 1.0
 var _picked := false
 var _opened_at := 0
+var _armed := false  # le bouton qui a ouvert le menu a ete relache
 
 
 static func open_at(screen_pos: Vector2i, p_items: Array, p_on_pick := Callable(), parent: Node = null, p_opts := {}) -> PetMenu:
@@ -119,6 +120,7 @@ func _open(screen_pos: Vector2i) -> void:
 	p.y = clampi(p.y, usable.position.y - m, usable.end.y - sz.y + m)
 	_body.anchor_corner = Vector2(1.0 if flip_x else 0.0, 1.0 if flip_y else 0.0)
 	_opened_at = Time.get_ticks_msec()
+	_armed = false
 	popup(Rect2i(p, sz))
 	_body.appear()
 
@@ -180,6 +182,22 @@ func _on_hide() -> void:
 	# la fenetre est gardee pour la prochaine ouverture (sauf si ce n'est pas celle du pool)
 	if _pool != self and not is_queued_for_deletion():
 		queue_free.call_deferred()
+
+
+## Clic n'importe ou ailleurs (gauche ou droit, meme dans une autre appli) : le menu se ferme.
+## (Windows ne previent pas toujours la perte de focus d'une fenetre ouverte depuis le compagnon.)
+func _process(_delta: float) -> void:
+	if not visible or _picked:
+		return
+	var buttons := DisplayServer.mouse_get_button_state()
+	if buttons == 0:
+		_armed = true
+		return
+	if not _armed or Time.get_ticks_msec() - _opened_at < 150:
+		return
+	var card := Rect2(Vector2(position) + Vector2(MARGIN, MARGIN) * _f, Vector2(size) - Vector2(MARGIN, MARGIN) * 2.0 * _f)
+	if not card.has_point(Vector2(DisplayServer.mouse_get_position())):
+		hide()
 
 
 func _notification(what: int) -> void:

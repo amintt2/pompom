@@ -75,9 +75,12 @@ var _cap_interval := 0.15
 var games: GameEvents
 var situations: PetSituations
 var vision: VisionClient
+var video_loc: VideoLocator
 var _video_rect := Rect2()
 var _vision_cd := 20.0
 var _guest_win: Window  # fenetre de mini-jeu ou il est assis
+var _side_peek := false  # en jeu plein ecran : accroche au bord droit de l'ecran
+var _side_hide := 0.0
 var _guest_away := 0.0
 var _guest_cd := 0.0
 var _game_react_cd := 0.0
@@ -152,6 +155,10 @@ func setup(p_stage: PetStage, p_emotes: EmoteLayer) -> void:
 	add_child(vision)
 	vision.vision_changed.connect(_on_vision)
 	vision.setup()
+	video_loc = VideoLocator.new()
+	video_loc.name = "VideoLocator"
+	add_child(video_loc)
+	video_loc.video_moved.connect(_on_video_located)
 	updater = Updater.new()
 	updater.name = "Updater"
 	add_child(updater)
@@ -510,7 +517,7 @@ func _process(delta: float) -> void:
 				state = "fall"
 
 	# taille (periscope / visio / esquive)
-	var tgt := _pet_scale_target * (0.06 if (_dive_t > 0.0 and state == "spot") else 1.0)
+	var tgt := _pet_scale_target * (0.06 if (_dive_t > 0.0 and state == "spot" and not _side_peek) else 1.0)
 	var k := minf(1.0, delta * (16.0 if _dive_t > 0.0 else 4.0))
 	pet.scale = pet.scale.lerp(Vector3.ONE * tgt, k)
 	_shake["cd"] = maxf(0.0, float(_shake["cd"]) - delta)
@@ -624,6 +631,14 @@ func _on_game_changed(_proc: String, genre: String) -> void:
 
 func _game_tick(delta: float) -> void:
 	_game_react_cd = maxf(0.0, _game_react_cd - delta)
+	# il cherche la video a l'ecran seulement quand il en regarde une (et que la vision IA ne l'a pas deja)
+	if video_loc:
+		var watching := situations != null and situations.is_playing() and PetSituations.WATCH_SIDS.has(situations.current)
+		watching = watching or (mode == "video" and state in ["ground", "walk"])
+		video_loc.active = watching and not _video_rect.has_area() and state != "hidden"
+		if video_loc.active:
+			video_loc.ignore_rects = [Rect2(pos, Vector2(W, H))]
+			video_loc.within = Rect2() if Activity.windows.is_empty() or Activity.fullscreen else Activity.windows[0]["rect"]
 	_vision_cd = maxf(0.0, _vision_cd - delta)
 	# retour dans la fenetre du mini-jeu quand elle repasse au premier plan
 	_guest_cd = maxf(0.0, _guest_cd - delta)
@@ -695,6 +710,25 @@ func _on_vision(top: String, probs: Dictionary, video_rect: Rect2, fullscreen: b
 			and not Input.get_connected_joypads().is_empty():
 		_vision_cd = 90.0
 		pet.act_gaming(randf_range(30.0, 60.0))
+
+
+## Le detecteur de mouvement a trouve (ou perdu) la video.
+func _on_video_located(r: Rect2) -> void:
+	if not situations:
+		return
+	situations.watch_point = r.get_center() if r.has_area() else Vector2.INF
+	if not r.has_area():
+		return
+	pet.watch_yaw = Pet.yaw_toward(r.get_center(), Vector2(_center_x(), _foot_y()))
+	# loin sur le cote : il va s'asseoir dessous ; sinon il se tourne simplement vers elle
+	if absf(r.get_center().x - _center_x()) > 420.0 * s and state == "ground" and _vision_cd <= 0.0 \
+			and DisplayServer.get_screen_from_rect(Rect2i(r)) == _screen():
+		_vision_cd = 60.0
+		_video_rect = r
+		await _watch_video()
+		_video_rect = Rect2()
+	else:
+		situations.refresh_watch()
 
 
 func _watch_video() -> void:
@@ -792,6 +826,7 @@ func _input(event: InputEvent) -> void:
 
 # =========================================================================== porter / lancer
 func _start_drag() -> void:
+	_side_peek = false
 	if is_instance_valid(_guest_win):
 		# on le sort du jeu : le dessin reprend sa place dans la carte
 		_guest_win.call("set_external_avatar", false)
@@ -1032,7 +1067,9 @@ func _brain(delta: float) -> void:
 	if _think > 0.0:
 		return
 	_think = randf_range(6.0, 13.0)
-	var away := Activity.available and Activity.idle_sec > 180.0
+	# devant une video on ne touche a rien : ce n'est pas une absence
+	var watching_video := mode == "video" or (video_loc != null and video_loc.rect.has_area()) 		or (situations != null and situations.is_playing() and PetSituations.WATCH_SIDS.has(situations.current))
+	var away := Activity.available and Activity.idle_sec > 180.0 and not watching_video
 	if (away or GameState.energy < 5.0) and not pet.sleeping:
 		_slept_at = Time.get_ticks_msec() / 1000.0
 		pet.act_sleep()
@@ -1312,18 +1349,26 @@ func _enter_fs() -> void:
 		_enter_side()
 
 
+## En jeu plein ecran : il se cache a moitie derriere le bord droit de l'ecran, aux deux tiers de la hauteur,
+## et regarde ta partie. Il disparait derriere le bord si ta souris approche.
 func _enter_side() -> void:
-	var sr := _screen_rect()
-	_pet_scale_target = 0.6
-	var half := _pet_px() * 0.3
-	pos = Vector2(sr.position.x + 26.0 * s + half - W * 0.5, sr.end.y - H + margin)
+	pet.stop_action()
+	_side_peek = true
+	_pet_scale_target = 0.75
+	pos = _side_pos(0.0)
 	state = "spot"
-	pet.airborne = false
-	# tourne de trois quarts vers le centre de l'ecran : on voit qu'il regarde, et un peu son visage
-	pet.watch_yaw = 1.15
-	get_tree().create_timer(0.3).timeout.connect(func():
-		if state == "spot" and mode == "fs":
-			pet.act_popcorn(3600.0))
+	pet.airborne = true  # accroche au bord, pas pose au sol
+	var t := create_tween()
+	t.tween_property(pet, "yaw", -0.95, 0.5).set_trans(Tween.TRANS_SINE)
+
+
+## Position accrochee au bord droit (hide : 0 = il regarde, 1 = completement cache derriere le bord).
+func _side_pos(hide: float) -> Vector2:
+	var sr := _screen_rect()
+	var w := _pet_px() * 0.75
+	var cx := sr.end.x - w * lerpf(0.12, -0.7, hide)  # ~60 % du corps visible
+	var foot := sr.position.y + sr.size.y * 0.72
+	return Vector2(cx - W * 0.5, foot - (H - margin))
 
 
 func _save_game_spot() -> void:
@@ -1341,6 +1386,12 @@ func _process_spot(dist: float, delta: float) -> void:
 	if dist < 120.0 * s:
 		_dive_t = 3.0
 	_dive_t = maxf(0.0, _dive_t - delta)
+	if _side_peek:
+		# il glisse derriere le bord de l'ecran au lieu de rapetisser
+		_side_hide = move_toward(_side_hide, 1.0 if _dive_t > 0.0 else 0.0, delta * (5.0 if _dive_t > 0.0 else 1.6))
+		pos = _side_pos(_side_hide)
+		pet.look = Vector2(-0.75, 0.05 + 0.06 * sin(Time.get_ticks_msec() / 900.0))
+		return
 	pet.look = Vector2(0.0, 0.1)
 
 
@@ -1399,6 +1450,8 @@ func _process_peek(dist: float, delta: float) -> void:
 
 func _exit_peek() -> void:
 	# retour a la maison : il retombe sur la barre des taches, a sa place habituelle
+	_side_peek = false
+	_side_hide = 0.0
 	_set_taskbar()
 	_pet_scale_target = 1.0
 	var home: float = GameState.settings.get("home_x", pos.x)
@@ -1443,7 +1496,7 @@ func _update_polygon() -> void:
 		var off := Geometry2D.offset_polygon(hull, 3.0 * s)
 		poly = off[0] if off.size() > 0 else hull
 		var clip := Rect2(Vector2.ZERO, Vector2(W, H))
-		if state == "peek":
+		if state == "peek" or _side_peek:
 			var sr := _screen_rect()
 			clip = clip.intersection(Rect2(sr.position - pos, sr.size))
 		var clipped := Geometry2D.intersect_polygons(poly, PackedVector2Array([
