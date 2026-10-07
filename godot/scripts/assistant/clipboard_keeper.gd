@@ -35,6 +35,13 @@ extends Node
 ##   # 5) (conseille) dans _process_mouse_near(), pour ne pas compter le survol de la carte comme une caresse :
 ##   var hovering := ... and not (clip and clip.is_over(local))
 ##
+##   # 6) eventail "main de cartes" (HeldFan, scripts/ui/held_fan.gd) : au survol de sa tete, les objets et
+##   #    l'enveloppe du courrier s'ecartent en cartes ; clic sur la lettre = lire le courrier. Juste apres clip.setup() :
+##   clip.attach_hud(hud)
+##   clip.mail_requested.connect(_read_mail)
+##   #    (sans ces 2 lignes : le GameHud frere des bulles est trouve tout seul et _read_mail() du parent est appele)
+##   #    et dans _update_perf() : busy_ui ... or (clip != null and clip.fan_open())  (fluide pendant le survol)
+##
 ## Dans scripts/ui/emote_layer.gd (conseille, 2 lignes) : bulles et emotions passent AU-DESSUS de la carte
 ## au lieu de la cacher. Le HeldItemsLayer remplit `bubble_lift` tout seul s'il existe.
 ##   var bubble_lift := 0.0  # px : hauteur de ce qu'il porte sur la tete (ClipboardKeeper)
@@ -58,6 +65,8 @@ signal item_copied(item: Dictionary)
 signal item_removed(item: Dictionary)
 signal item_put_down(item: Dictionary)
 signal skipped(reason: String)
+## Clic sur la carte "lettre" de l'eventail : le compagnon doit lire son courrier (DesktopController._read_mail).
+signal mail_requested
 
 const SETTING := "clipboard"
 ## Captures d'ecran (Outil Capture d'ecran, Win+Maj+S, Impr. ecran) : gardees meme si le gardien general
@@ -91,6 +100,8 @@ const LINES_FORGET := ["D'accord, j'oublie !", "Pouf, envolé !"]
 var stage: PetStage
 var pet: Pet
 var layer: HeldItemsLayer
+var fan: HeldFan  # eventail au survol de sa tete (fenetre a part)
+var hud: GameHud  # enveloppe du courrier (mail_count)
 
 var enabled := false
 var shots_only := false  # seul le mode "captures d'ecran" est actif
@@ -104,10 +115,11 @@ var save_dir := ""  # dossier des images deposees ("" = Images/Pompom)
 # tests : souris simulee (ignore l'etat reel du bouton) et "hors fenetre" force
 var sim_mouse := false
 var sim_outside := false
+var dry_run := false  # tests : ne touche jamais au vrai presse-papiers (retours et signaux quand meme)
 
 ## Objets, du plus recent au plus ancien :
 ## {id, kind: text|image|file, text, title, image: Image, thumb: ImageTexture, files: PackedStringArray,
-##  hash, place: head|feet, hold: secondes portees, reduced: bool}
+##  hash, place: head|feet, hold: secondes portees, reduced: bool, time: date de la copie (unix)}
 var items: Array[Dictionary] = []
 
 var _next_id := 1
@@ -161,9 +173,63 @@ func setup(p_stage: PetStage, p_emotes: Control = null, ui_parent: Node = null) 
 	parent.add_child(layer)
 	if p_emotes and p_emotes.get_parent() == parent:
 		parent.move_child(layer, p_emotes.get_index())  # sous les bulles de dialogue
+	# eventail "main de cartes" (fenetre a part, transitoire de la notre)
+	fan = HeldFan.new()
+	fan.name = "HeldFan"
+	fan.keeper = self
+	fan.layer = layer
+	fan.main_win = get_window()
+	fan.card_activated.connect(_on_fan_card)
+	fan.card_removed.connect(func(e: Dictionary):
+		if not (e["item"] as Dictionary).is_empty():
+			forget(e["item"]))
+	fan.card_dropped_out.connect(func(e: Dictionary):
+		if not (e["item"] as Dictionary).is_empty():
+			drop_outside(e["item"]))
+	add_child(fan)
+	if hud == null:
+		for c in parent.get_children():
+			if c is GameHud:
+				attach_hud(c)
+				break
 	if not GameState.settings_changed.is_connected(_sync_setting):
 		GameState.settings_changed.connect(_sync_setting)
 	_sync_setting()
+
+
+## Enveloppe du courrier (GameHud.mail_count) : montree comme une carte "lettre" dans l'eventail.
+func attach_hud(h: GameHud) -> void:
+	hud = h
+	if fan:
+		fan.hud = h
+
+
+## L'eventail est-il ouvert (cartes ecartees au-dessus de sa tete) ?
+func fan_open() -> bool:
+	return fan != null and fan.is_shown()
+
+
+func _on_fan_card(e: Dictionary) -> void:
+	match str(e["kind"]):
+		"mail":
+			if fan:
+				fan.close(true)
+			if not mail_requested.get_connections().is_empty():
+				mail_requested.emit()
+			elif get_parent() and get_parent().has_method("_read_mail"):
+				get_parent().call("_read_mail")  # DesktopController sans le cablage 6)
+			else:
+				mail_requested.emit()
+		_:
+			if items.has(e["item"]):
+				copy_item(e["item"])
+
+
+func _pill(text: String, color: Color, it: Dictionary) -> void:
+	if fan and fan.is_open():
+		fan.pill(text, color, it)
+	elif layer:
+		layer.pill(text, color, it)
 
 
 func _sync_setting() -> void:
@@ -209,6 +275,8 @@ func stop() -> void:
 	_cancel_press()
 	if layer:
 		layer.reset()
+	if fan and not (hud and hud.mail_count > 0):
+		fan.close_now()
 
 
 func _exit_tree() -> void:
@@ -221,6 +289,8 @@ func bounds() -> Rect2:
 
 
 func is_over(local_pos: Vector2) -> bool:
+	if fan and fan.contains_global(local_pos + Vector2(get_window().position)):
+		return true
 	return enabled and layer != null and not layer.hit_test(local_pos).is_empty()
 
 
@@ -623,6 +693,7 @@ func _add(it: Dictionary) -> Dictionary:
 			items.remove_at(i)
 			old["place"] = "head"
 			old["hold"] = 0.0
+			old["time"] = Time.get_unix_time_from_system()
 			items.push_front(old)
 			if layer:
 				layer.on_item_added(old)
@@ -633,6 +704,7 @@ func _add(it: Dictionary) -> Dictionary:
 	_next_id += 1
 	it["place"] = "head"
 	it["hold"] = 0.0
+	it["time"] = Time.get_unix_time_from_system()
 	if not it.has("files"):
 		it["files"] = PackedStringArray()
 	items.push_front(it)
@@ -727,7 +799,9 @@ func copy_item(it: Dictionary, feedback := true) -> bool:
 	if it.is_empty():
 		return false
 	var ok := true
-	match it["kind"]:
+	match "dry" if dry_run else str(it["kind"]):
+		"dry":
+			pass
 		"text":
 			_self_hash = (it["text"] as String).md5_text()
 			_last_text_hash = _self_hash
@@ -744,11 +818,11 @@ func copy_item(it: Dictionary, feedback := true) -> bool:
 				_self_hash = (it["text"] as String).md5_text()
 				_last_text_hash = _self_hash
 				_set_text(it["text"])  # repli : les chemins en texte
-	if feedback and layer:
+	if feedback:
 		if ok:
-			layer.pill("Copié !", UITheme.MINT, it)
+			_pill("Copié !", UITheme.MINT, it)
 		else:
-			layer.pill("Je ne peux pas copier d'image ici...", UITheme.PEACH, it)
+			_pill("Je ne peux pas copier d'image ici...", UITheme.PEACH, it)
 	if ok:
 		item_copied.emit(it)
 		if pet and pet.root_node and not pet.carried:
@@ -773,7 +847,9 @@ func forget(it: Dictionary) -> void:
 	if i < 0:
 		return
 	items.remove_at(i)
-	if layer:
+	if fan and fan.is_open():
+		fan.poof(it)
+	elif layer:
 		layer.play_forget(it)
 	if talk and _talk_cd <= 0.0 and randf() < 0.35 and pet:
 		_talk_cd = 20.0
@@ -852,13 +928,12 @@ func cycle() -> void:
 func drop_outside(it: Dictionary) -> void:
 	if it.is_empty():
 		return
-	if it["kind"] == "image":
+	if it["kind"] == "image" and not dry_run:
 		_save_and_copy_image(it["image"])
 		item_copied.emit(it)
 	else:
 		var ok := copy_item(it, false)
-		if layer:
-			layer.pill("Copié ! Ctrl+V pour coller" if ok else "Oups, pas pu copier...", UITheme.MINT if ok else UITheme.PEACH, {})
+		_pill("Copié ! Ctrl+V pour coller" if ok else "Oups, pas pu copier...", UITheme.MINT if ok else UITheme.PEACH, {})
 	if it["place"] == "head":
 		put_down([it], "taken")
 	if pet and pet.root_node:
@@ -888,13 +963,12 @@ func _save_and_copy_image(img: Image) -> void:
 	if _running:
 		_self_img_until = Time.get_ticks_msec() + 5000
 		_write_cmd("img " + str(data["b64"]) + (" " + Marshalls.utf8_to_base64(path) if saved else ""))
-	if layer:
-		if saved:
-			layer.pill("Copié et rangé dans Images/Pompom !" if _running else "Rangé dans Images/Pompom !", UITheme.MINT, {})
-		elif _running:
-			layer.pill("Copié ! Ctrl+V pour coller", UITheme.MINT, {})
-		else:
-			layer.pill("Oups, pas pu l'enregistrer...", UITheme.PEACH, {})
+	if saved:
+		_pill("Copié et rangé dans Images/Pompom !" if _running else "Rangé dans Images/Pompom !", UITheme.MINT, {})
+	elif _running:
+		_pill("Copié ! Ctrl+V pour coller", UITheme.MINT, {})
+	else:
+		_pill("Oups, pas pu l'enregistrer...", UITheme.PEACH, {})
 
 
 func _pictures_path() -> String:
@@ -1172,8 +1246,7 @@ func _drain_helper() -> void:
 			"set":
 				if not bool(d.get("ok", false)):
 					print_verbose("Pompom presse-papiers occupe par : ", d.get("busy", "?"))
-					if layer:
-						layer.pill("Oups, le presse-papiers est occupé...", UITheme.PEACH, {})
+					_pill("Oups, le presse-papiers est occupé...", UITheme.PEACH, {})
 
 
 func _write_cmd(line: String) -> void:

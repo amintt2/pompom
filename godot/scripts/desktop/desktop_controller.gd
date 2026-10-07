@@ -131,6 +131,8 @@ func setup(p_stage: PetStage, p_emotes: EmoteLayer) -> void:
 	clip.name = "Clipboard"
 	add_child(clip)
 	clip.setup(stage, emotes)
+	clip.attach_hud(hud)
+	clip.mail_requested.connect(_read_mail)
 	suggest = SuggestClient.new()
 	suggest.name = "Suggest"
 	add_child(suggest)
@@ -761,7 +763,7 @@ func _update_perf(delta: float) -> void:
 		return
 	_perf_t -= delta
 	var busy_ui := (_shop != null and is_instance_valid(_shop) and _shop.visible) or PetMenu.current() != null \
-		or MiniGames.current() != null
+		or MiniGames.current() != null or (clip != null and clip.fan_open())
 	var active := busy_ui or state in ["drag", "fall"] or _mouse_dist < _pet_px() * 2.0
 	if _perf_t > 0.0 and not (active and Engine.max_fps != _perf_fps_full()):
 		return

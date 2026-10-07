@@ -16,6 +16,9 @@ var _banner_t := 0.0
 var _bounds := Rect2()
 var mail_count := 0  # enveloppe sur sa tete (boite aux lettres)
 var _mail_t := 0.0
+## L'enveloppe est montree dans l'eventail (HeldFan) : on ne la dessine plus ici.
+var mail_hidden := false
+var _mail_rect := Rect2()
 
 const NEED_COLORS := {
 	"faim": Color("ff8a5c"), "fun": Color("ffcf3f"), "energie": Color("8e7dff"),
@@ -64,6 +67,11 @@ func is_busy() -> bool:
 
 func bounds() -> Rect2:
 	return _bounds
+
+
+## Zone (pixels de la fenetre) de l'enveloppe sur sa tete ; vide sans courrier.
+func mail_rect() -> Rect2:
+	return _mail_rect if mail_count > 0 else Rect2()
 
 
 func _process(delta: float) -> void:
@@ -150,6 +158,11 @@ func _draw() -> void:
 		var ew := 30.0 * s
 		var eh := 20.0 * s
 		var er := Rect2(hp - Vector2(ew * 0.5, eh), Vector2(ew, eh))
+		_mail_rect = er.grow_individual(8.0 * s, 12.0 * s, 12.0 * s, 4.0 * s)
+	if mail_count > 0 and not mail_hidden:
+		var ew := 30.0 * s
+		var eh := 20.0 * s
+		var er := Rect2(_mail_rect.position + Vector2(8.0, 12.0) * s, Vector2(ew, eh))
 		var eb := UITheme.box(Color(1, 1, 1), int(4 * s), UITheme.ACCENT, int(2 * s), 0)
 		eb.shadow_color = Color(0, 0, 0, 0.15)
 		eb.shadow_size = int(3 * s)

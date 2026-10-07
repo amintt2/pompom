@@ -3,6 +3,13 @@
 Toutes les versions de Pompom. Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/)
 et les numéros suivent [SemVer](https://semver.org/lang/fr/).
 
+## [0.6.2-beta] - 2026-10-07
+
+### Ce qu'il tient, en main de cartes
+- Survole sa tête : tout ce qu'il porte (captures, textes copiés, fichiers, et la **lettre** avec ses messages) s'étale au-dessus de lui **comme une main de cartes**. La carte survolée se soulève.
+- **Clique une carte** pour la récupérer (copier l'image ou le texte, lire la lettre). Glisse-la dehors pour la déposer, clic droit pour la retirer.
+- Survole une **image** : un grand aperçu net s'affiche au-dessus (ou sur le côté près du haut de l'écran), avec sa taille et son âge.
+
 ## [0.6.1-beta] - 2026-10-07
 
 ### Il apprend de ses erreurs

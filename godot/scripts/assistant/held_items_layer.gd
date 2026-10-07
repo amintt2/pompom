@@ -45,6 +45,10 @@ var _back := {}  # {item, from, t} : retour sur la tete apres un glisser annule
 var _was_drawn := false
 var _lift := 0.0
 var sim_mouse_pos := Vector2.INF  # tests : position de souris simulee (survol)
+## Les cartes de sa tete sont montrees en eventail (HeldFan) : on ne les dessine plus ici
+## (la geometrie reste calculee pour head_zone() / head_anchor()).
+var fan_hidden := false
+var _head_zone := Rect2()
 
 # geometrie du dernier dessin (tests de clic)
 var _card_xf := Transform2D()
@@ -82,6 +86,21 @@ func head_pos() -> Vector2:
 	if stage == null or stage.pet.root_node == null:
 		return size * 0.5
 	return stage.camera.unproject_position(stage.pet.head_top_global())
+
+
+## Zone (pixels de la fenetre) occupee par la pile sur sa tete ; vide s'il ne porte rien.
+func head_zone() -> Rect2:
+	return _head_zone if _ready_to_draw() and not keeper.head_items().is_empty() else Rect2()
+
+
+## Point (milieu du bas de la carte du dessus) ou la pile est posee sur sa tete.
+func head_anchor() -> Vector2:
+	return _anchor if _anchor != Vector2.ZERO else head_pos()
+
+
+## Taille (px de la fenetre) de la carte de cet objet quand elle est posee sur sa tete.
+func card_px(it: Dictionary) -> Vector2:
+	return _card_px(it)
 
 
 # =========================================================================== evenements (appeles par le keeper)
@@ -305,7 +324,18 @@ func _draw() -> void:
 		if not flying.has(it["id"]):
 			top = it
 			break
-	if not top.is_empty():
+	if not top.is_empty() and fan_hidden:
+		# les cartes sont dans l'eventail : seulement la geometrie (zone de survol)
+		var hc := _card_px(top)
+		var hxf := Transform2D(ang, Vector2.ONE, 0.0, _anchor)
+		var zmin := Vector2(INF, INF)
+		var zmax := Vector2(-INF, -INF)
+		for c in [hxf * Vector2(-hc.x * 0.5, -hc.y), hxf * Vector2(hc.x * 0.5, -hc.y), hxf * Vector2(hc.x * 0.5, 0), hxf * Vector2(-hc.x * 0.5, 0)]:
+			zmin = zmin.min(c - Vector2(8, 8) * s)
+			zmax = zmax.max(c + Vector2(8, 6) * s)
+		_head_zone = Rect2(zmin, zmax - zmin)
+		_card_top = head + Vector2(0, -10.0 * s)
+	elif not top.is_empty():
 		# pile derriere (2 max)
 		var behind := head_list.filter(func(it): return it != top and not flying.has(it["id"]))
 		var nb := mini(2, behind.size())
@@ -337,9 +367,14 @@ func _draw() -> void:
 		_card_item = top
 		_card_top = xf * Vector2(0, -csz.y)
 		var corners := [xf * Vector2(-csz.x * 0.5, -csz.y), xf * Vector2(csz.x * 0.5, -csz.y), xf * Vector2(csz.x * 0.5, 0), xf * Vector2(-csz.x * 0.5, 0)]
+		var zmin2 := Vector2(INF, INF)
+		var zmax2 := Vector2(-INF, -INF)
 		for c in corners:
 			bmin = bmin.min(c - Vector2(10, 10) * s)
 			bmax = bmax.max(c + Vector2(10, 12) * s)
+			zmin2 = zmin2.min(c - Vector2(8, 8) * s)
+			zmax2 = zmax2.max(c + Vector2(8, 6) * s)
+		_head_zone = Rect2(zmin2, zmax2 - zmin2)
 		# badge "+N"
 		if head_list.size() > 1:
 			_badge_c = xf * Vector2(-csz.x * 0.5 + 3.0 * s, -csz.y + 3.0 * s)
@@ -353,6 +388,7 @@ func _draw() -> void:
 			_draw_effort(_anchor, csz, ang, s, lvl)
 	else:
 		_card_top = head + Vector2(0, -10.0 * s)
+		_head_zone = Rect2()
 
 	# ---------------------------------------------------------------- animations
 	for f in _flyers:
