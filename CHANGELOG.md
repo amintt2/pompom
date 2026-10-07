@@ -3,6 +3,12 @@
 Toutes les versions de Pompom. Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/)
 et les numéros suivent [SemVer](https://semver.org/lang/fr/).
 
+## [0.6.0-beta] - 2026-10-07
+
+### Un seul compagnon dans la boutique
+- Quand tu ouvres la boutique, **il saute dedans** et s'assoit dans la carte d'aperçu (fini le double). C'est lui qu'on habille : les essayages, les couleurs, les réactions, tout se passe sur le vrai compagnon.
+- Glisse sur lui pour le faire tourner sur lui-même. À la fermeture, il redescend avec sa vraie tenue (les essayages non achetés sont retirés).
+
 ## [0.5.4-beta] - 2026-10-06
 
 ### Corrigé

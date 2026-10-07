@@ -81,6 +81,7 @@ var _vision_cd := 20.0
 var _guest_win: Window  # fenetre de mini-jeu ou il est assis
 var _side_peek := false  # en jeu plein ecran : accroche au bord droit de l'ecran
 var _side_hide := 0.0
+var _spun := false  # on l'a fait tourner (boutique) : pas de "coucou" au relachement
 var _guest_away := 0.0
 var _guest_cd := 0.0
 var _game_react_cd := 0.0
@@ -813,11 +814,19 @@ func _input(event: InputEvent) -> void:
 			else:
 				if state == "drag":
 					_end_drag()
-				elif _press:
+				elif _press and not _spun:
 					_poke()
+				_spun = false
 				_press = false
 		elif mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed:
 			PetMenu.open_at(DisplayServer.mouse_get_position(), _menu_items(), _on_menu, self)
+	elif event is InputEventMouseMotion and _press and state == "guest" and _guest_win == _shop:
+		# dans la boutique : glisser le fait tourner sur lui-meme (comme l'apercu)
+		var mm: InputEventMouseMotion = event
+		pet.rotation.y += mm.relative.x * 0.012
+		_spun = _spun or absf(mm.relative.x) > 1.0
+		pet.push_accel(Vector2(mm.relative.x * 3.0, 0), 0.016)
+		_press_mouse = Vector2(DisplayServer.mouse_get_position())
 	elif event is InputEventMouseMotion and _press and state != "drag":
 		var mouse2 := Vector2(DisplayServer.mouse_get_position())
 		if mouse2.distance_to(_press_mouse) > 6.0 * s and state in ["ground", "walk", "fall", "peek", "spot", "hang", "guest"]:
@@ -1781,6 +1790,9 @@ func open_shop(tab := "head") -> void:
 		_shop.keep_alive = true
 		add_child(_shop)
 	_shop.call("open", tab)
+	# il saute dans la boutique : un seul compagnon, c'est lui qu'on habille
+	if _guest_win != _shop or state != "guest":
+		_enter_guest(_shop)
 
 
 ## Mini-jeux contre lui (Puissance 4, Snake duel, Morpion) : il reagit aussi sur le bureau.
@@ -1876,6 +1888,8 @@ func _guest_pos(info: Dictionary) -> Vector2:
 
 
 func _guest_scale(info: Dictionary) -> float:
+	if info.has("ppu"):
+		return clampf(float(info["ppu"]) * 0.88 / maxf(stage.ppu, 1.0), 0.4, 1.3)
 	var r: Rect2 = info["rect"]
 	return clampf(minf(r.size.y * 0.62, r.size.x * 0.5) / maxf(_pet_px(), 1.0), 0.35, 1.0)
 
@@ -1899,7 +1913,7 @@ func _process_guest() -> void:
 	pos = _guest_pos(info)  # il suit la fenetre si on la deplace
 	_pet_scale_target = _guest_scale(info)
 	if not pet.busy:
-		pet.look = Vector2(0.55, -0.15)  # il regarde le plateau
+		pet.look = info.get("look", Vector2(0.55, -0.15))  # il regarde le plateau (ou toi, dans la boutique)
 
 
 func _exit_guest(forget := true) -> void:

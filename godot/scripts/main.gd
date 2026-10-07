@@ -99,6 +99,8 @@ func _debug_overrides(args: PackedStringArray) -> void:
 		_situations_brain_test()
 	if args.has("--vision-react-test"):
 		_vision_react_test()
+	if args.has("--shop-guest-test"):
+		_shop_guest_test()
 	if args.has("--game-events-test"):
 		_game_events_test()
 	if args.has("--plat-test"):
@@ -251,6 +253,51 @@ func _vision_react_test() -> void:
 	print("VISIONREACT start_cx=%d cx=%d video_cx=%d situation=%s -> %s" % [cx0, cx, vr.get_center().x, dc.situations.current, "OK" if ok else "KO"])
 	await get_tree().create_timer(1.5).timeout
 	get_viewport().get_texture().get_image().save_png(ProjectSettings.globalize_path("user://vision_react.png"))
+	get_tree().quit()
+
+
+## Test : la boutique s'ouvre -> le vrai compagnon saute dedans ; essayage ; fermeture -> il redescend avec sa tenue.
+func _shop_guest_test() -> void:
+	await get_tree().create_timer(3.0).timeout
+	var dc := get_node_or_null("Desktop")
+	Activity.set_process(false)
+	Activity.category = "other"
+	Activity.fullscreen = false
+	Activity.meeting = false
+	dc._update_mode()
+	dc._set_taskbar()
+	dc.pos.y = dc._ground_y()
+	dc.state = "ground"
+	stage.pet.airborne = false
+	dc.open_shop("face")
+	await get_tree().create_timer(0.3).timeout
+	dc._shop.move_to_foreground()
+	await get_tree().create_timer(3.0).timeout
+	var ok := 0
+	var ko := 0
+	print("SHOPGUEST state=%s scale=%.2f" % [dc.state, stage.pet.scale.x])
+	if dc.state == "guest": ok += 1
+	else: ko += 1
+	var info: Dictionary = dc._shop.avatar_screen_info()
+	if not info.is_empty():
+		var cap := DisplayServer.screen_get_image_rect(Rect2i((info["rect"] as Rect2).grow(20)))
+		if cap:
+			cap.save_png(ProjectSettings.globalize_path("user://shop_guest.png"))
+	# essayage : la boutique habille le vrai compagnon
+	var try_id := "sunglasses"
+	dc._shop.call("_pp").set_item("face", try_id, GameState.colors_for(try_id), false)
+	await get_tree().create_timer(0.5).timeout
+	var worn := str(stage.pet.slot_items.get("face", ""))
+	print("SHOPGUEST essayage face=", worn)
+	if worn == try_id: ok += 1
+	else: ko += 1
+	dc._shop.close_shop()
+	await get_tree().create_timer(2.5).timeout
+	var after := str(stage.pet.slot_items.get("face", ""))
+	print("SHOPGUEST apres fermeture state=%s face=%s (equipe=%s) scale=%.2f" % [dc.state, after, GameState.equipped.get("face", ""), stage.pet.scale.x])
+	if dc.state != "guest" and after == str(GameState.equipped.get("face", "")): ok += 1
+	else: ko += 1
+	print("SHOPGUEST TEST: %d ok, %d ko" % [ok, ko])
 	get_tree().quit()
 
 

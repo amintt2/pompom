@@ -840,6 +840,7 @@ func _test_reopen() -> void:
 
 
 func _test_menu() -> void:
+	PetMenu.close_on_outside_click = false
 	var got := []
 	var pos := Vector2i(DisplayServer.screen_get_usable_rect().end) - Vector2i(300, 40)
 	var m := PetMenu.open_at(pos, PetMenu.default_items(false), func(id): got.append(id), self)

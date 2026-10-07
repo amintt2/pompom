@@ -20,6 +20,7 @@ const SEP_H := 11.0
 const HEADER_H := 66.0
 
 static var _current: PetMenu
+static var close_on_outside_click := true  # (tests : desactive, la vraie souris de l'utilisateur bouge pendant le test)
 static var _pool: PetMenu  # une seule fenetre, reutilisee : l'ouverture est instantanee
 
 var items: Array = []
@@ -187,7 +188,7 @@ func _on_hide() -> void:
 ## Clic n'importe ou ailleurs (gauche ou droit, meme dans une autre appli) : le menu se ferme.
 ## (Windows ne previent pas toujours la perte de focus d'une fenetre ouverte depuis le compagnon.)
 func _process(_delta: float) -> void:
-	if not visible or _picked:
+	if not visible or _picked or not close_on_outside_click:
 		return
 	var buttons := DisplayServer.mouse_get_button_state()
 	if buttons == 0:

@@ -22,6 +22,9 @@ const COLOR_SLOTS := [["main", "Principale"], ["accent", "Secondaire"], ["detail
 const THUMB_KIND := {"item": "item", "species": "species", "mat": "material", "eye": "eye", "mouth": "mouth"}
 
 var preview: PetStage
+## Le vrai compagnon du bureau quand il est venu s'asseoir dans la boutique (sinon : l'apercu 3D interne).
+var host_stage: PetStage
+var host_emotes: EmoteLayer
 var preview_emotes: EmoteLayer
 var thumbs: Thumbs
 var tabs: UIKit.Tabs
@@ -207,17 +210,17 @@ func _apply_scale(f: float, recenter: bool) -> void:
 
 
 func _process(delta: float) -> void:
-	if _sv and not visible and _sv.render_target_update_mode != SubViewport.UPDATE_DISABLED:
+	if _sv and (not visible or host_stage) and _sv.render_target_update_mode != SubViewport.UPDATE_DISABLED:
 		_sv.render_target_update_mode = SubViewport.UPDATE_DISABLED  # cachee : l'apercu ne coute rien
 	if not _opened or _closing or not visible:
 		return
 	# rotation de l'apercu avec inertie
 	if not _drag_rot and absf(_rot_vel) > 0.01:
-		preview.pet.rotation.y += _rot_vel * delta
+		_pp().rotation.y += _rot_vel * delta
 		_rot_vel = move_toward(_rot_vel, 0.0, delta * maxf(2.0, absf(_rot_vel) * 3.0))
 	# rendu de l'apercu coupe quand la fenetre est reduite
 	if _sv:
-		var want := SubViewport.UPDATE_DISABLED if mode == MODE_MINIMIZED else SubViewport.UPDATE_ALWAYS
+		var want := SubViewport.UPDATE_DISABLED if (mode == MODE_MINIMIZED or host_stage) else SubViewport.UPDATE_ALWAYS
 		if _sv.render_target_update_mode != want:
 			_sv.render_target_update_mode = want
 	if _commit_t >= 0.0:
@@ -397,9 +400,9 @@ func _build_left() -> VBoxContainer:
 	reset.pressed.connect(func():
 		_rot_vel = 0.0
 		var t := create_tween()
-		var r := wrapf(preview.pet.rotation.y, -PI, PI)
-		preview.pet.rotation.y = r
-		t.tween_property(preview.pet, "rotation:y", 0.0, 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT))
+		var r := wrapf(_pp().rotation.y, -PI, PI)
+		_pp().rotation.y = r
+		t.tween_property(_pp(), "rotation:y", 0.0, 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT))
 	reset.solid_bg = true
 	_preview_card.add_child(reset)
 	# astuce en bas
@@ -525,8 +528,69 @@ func _mood_row(parent: Control, icon_name: String, label_text: String, color: Co
 	return [bar, pct]
 
 
+## Le compagnon que la boutique habille : le vrai (assis dans la carte) ou l'apercu interne.
+func _pp() -> Pet:
+	return host_stage.pet if host_stage and is_instance_valid(host_stage.pet) else preview.pet
+
+
+func _pe() -> EmoteLayer:
+	return host_emotes if host_stage and is_instance_valid(host_emotes) else preview_emotes
+
+
+func _shells() -> int:
+	return int(GameState.settings.get("fur_quality", 16)) if host_stage else 12
+
+
+## Scene de l'apercu en pixels ecran, pour que le vrai compagnon vienne s'y asseoir : {rect, floor, ppu, look}.
+func avatar_screen_info() -> Dictionary:
+	if not _opened or _closing or not visible or mode == MODE_MINIMIZED or not is_instance_valid(_preview_card):
+		return {}
+	var r := _preview_card.get_global_rect()
+	var origin := Vector2(position)
+	var rect := Rect2(origin + r.position * _f, r.size * _f)
+	var h := rect.size.y
+	return {"rect": rect, "floor": Vector2(rect.get_center().x, rect.end.y - h * 0.14), "ppu": h / 2.35, "look": Vector2.ZERO}
+
+
+## true : le vrai compagnon (celui du bureau) est assis dans la carte ; la boutique l'habille directement.
+func set_external_avatar(on: bool) -> void:
+	var host := get_parent()
+	if on:
+		if host_stage or host == null or not ("stage" in host):
+			return
+		host_stage = host.get("stage")
+		host_emotes = host.get("emotes")
+		if is_instance_valid(preview_view):
+			preview_view.visible = false
+		if _sv:
+			_sv.render_target_update_mode = SubViewport.UPDATE_DISABLED
+		_sync_preview()
+	else:
+		if host_stage == null:
+			return
+		var pet := host_stage.pet
+		var was_previewing := _previewing_look
+		host_stage = null
+		host_emotes = null
+		if is_instance_valid(pet):
+			pet.rotation.y = 0.0
+			# on rend au compagnon sa vraie tenue (les essayages restent dans la boutique)
+			if was_previewing:
+				host.get("stage").build_from_state()
+			else:
+				for slot in Data.SLOTS:
+					var id: String = GameState.equipped.get(slot, "")
+					if pet.slot_items.get(slot, "") != id:
+						pet.set_item(slot, id, GameState.colors_for(id) if id != "" else {}, false)
+		if is_instance_valid(preview_view):
+			preview_view.visible = true
+		_rebuild_preview()
+
+
 func _studio_env() -> void:
-	preview.pet.set_env(PetAssets.studio_env(), Vector4(0, 0, 1, 1), Vector2(0.5, 0.5), 0.3, 0.9)
+	if host_stage:
+		return  # le vrai compagnon garde les reflets de l'ecran
+	_pp().set_env(PetAssets.studio_env(), Vector4(0, 0, 1, 1), Vector2(0.5, 0.5), 0.3, 0.9)
 
 
 func _frame_preview() -> void:
@@ -582,21 +646,24 @@ func _on_preview_input(ev: InputEvent) -> void:
 		if ev.pressed:
 			_rot_vel = 0.0
 			if ev.double_click:
-				preview.pet.act_spin()
+				_pp().act_spin()
 	elif ev is InputEventMouseMotion and _drag_rot:
-		preview.pet.rotation.y += ev.relative.x * 0.012
+		_pp().rotation.y += ev.relative.x * 0.012
 		_rot_vel = ev.relative.x * 0.012 / maxf(get_process_delta_time(), 0.008)
 		_rot_vel = clampf(_rot_vel, -12.0, 12.0)
-		preview.pet.push_accel(Vector2(ev.relative.x * 3.0, 0), 0.016)
+		_pp().push_accel(Vector2(ev.relative.x * 3.0, 0), 0.016)
 		if _hint.visible:
 			_hint.dismiss()
 
 
 func _rebuild_preview() -> void:
-	var rot := preview.pet.rotation.y
-	preview.build_from_state(12)
+	var rot := _pp().rotation.y
+	if host_stage:
+		host_stage.build_from_state()
+	else:
+		preview.build_from_state(12)
 	_studio_env()
-	preview.pet.rotation.y = rot
+	_pp().rotation.y = rot
 	_previewing_look = false
 	_preview_card.tint = GameState.current_fur_color()
 	_preview_card.queue_redraw()
@@ -610,8 +677,8 @@ func _sync_preview(keep_slot := "") -> void:
 		if slot == keep_slot:
 			continue
 		var id: String = GameState.equipped.get(slot, "")
-		if preview.pet.slot_items.get(slot, "") != id:
-			preview.pet.set_item(slot, id, GameState.colors_for(id) if id != "" else {}, false)
+		if _pp().slot_items.get(slot, "") != id:
+			_pp().set_item(slot, id, GameState.colors_for(id) if id != "" else {}, false)
 
 
 func _on_resized() -> void:
@@ -855,20 +922,20 @@ func _select_item(slot: String, id: String, react := true) -> void:
 	_sel[slot] = id
 	_previewing_look = false
 	if id == "":
-		preview.pet.set_item(slot, "", {}, false)
+		_pp().set_item(slot, "", {}, false)
 		if react and GameState.equipped.get(slot, "") != "":
 			GameState.unequip(slot)
 	else:
 		if not _try_colors.has(id):
 			_try_colors[id] = GameState.colors_for(id)
-		var same: bool = preview.pet.slot_items.get(slot, "") == id
+		var same: bool = _pp().slot_items.get(slot, "") == id
 		if not same or react:
-			preview.pet.set_item(slot, id, _try_colors[id], react)
+			_pp().set_item(slot, id, _try_colors[id], react)
 		if react:
 			var level := Data.preference(GameState.species, id, _try_colors[id]["main"])
 			GameState.discover(id, level)
-			preview.pet.react_to_item(level)
-			preview_emotes.say(Data.line(level), 2.4)
+			_pp().react_to_item(level)
+			_pe().say(Data.line(level), 2.4)
 	_refresh_item_cards(slot)
 	_fill_item_detail(slot, id)
 
@@ -1079,7 +1146,7 @@ func _set_try_color(slot: String, id: String, which: String, c: Color, final: bo
 	if not _try_colors.has(id):
 		_try_colors[id] = GameState.colors_for(id)
 	_try_colors[id][which] = c
-	preview.pet.set_item(slot, id, _try_colors[id], false)
+	_pp().set_item(slot, id, _try_colors[id], false)
 	if not final:
 		return
 	if GameState.owned.has(id):
@@ -1088,8 +1155,8 @@ func _set_try_color(slot: String, id: String, which: String, c: Color, final: bo
 			_request_thumb("item", id, cards[id].set_thumb)
 		_refresh_outfit()
 	if which == "main" and Data.is_fav_color(GameState.species, c):
-		preview_emotes.say(Data.line("fav_color"), 2.0)
-		preview.pet.act_love()
+		_pe().say(Data.line("fav_color"), 2.0)
+		_pp().act_love()
 
 
 func _ask_buy_item(slot: String, id: String) -> void:
@@ -1141,8 +1208,8 @@ func _celebrate(text: String) -> void:
 	var c := confetti.size
 	confetti.burst(Vector2(c.x * 0.5, c.y * 0.45))
 	toast.show_msg(text, "sparkle", UITheme.ACCENT)
-	preview_emotes.emit_emote("sparkle", 4)
-	preview.pet.act_love()
+	_pe().emit_emote("sparkle", 4)
+	_pp().act_love()
 
 
 # =========================================================================== apparence
@@ -1278,7 +1345,7 @@ func _look_pressed(section: String, id: String) -> void:
 	if section == "species" and _species_lock(id) > 0:
 		# espece verrouillee : apercu seulement
 		_preview_species(id)
-		preview_emotes.say("Débloqué au niveau %d !" % _species_lock(id), 2.4)
+		_pe().say("Débloqué au niveau %d !" % _species_lock(id), 2.4)
 	elif _look_owned(section, id):
 		if id != _look_current(section):
 			if section == "species":
@@ -1291,7 +1358,7 @@ func _look_pressed(section: String, id: String) -> void:
 		_preview_look(section, id)
 		var price := _look_price(section, id)
 		if GameState.coins < price:
-			preview_emotes.say("Il manque %s pièces…" % UIKit.fmt(price - GameState.coins), 2.0)
+			_pe().say("Il manque %s pièces…" % UIKit.fmt(price - GameState.coins), 2.0)
 	_refresh_look_cards()
 	_fill_look_detail(section, id)
 
@@ -1401,17 +1468,17 @@ func _ask_buy_look(section: String, id: String) -> void:
 
 
 func _preview_species(id: String) -> void:
-	var rot := preview.pet.rotation.y
+	var rot := _pp().rotation.y
 	var mat_col := str(Data.MATERIALS[GameState.material].get("color", ""))
 	var col := Color.html(mat_col) if mat_col != "" else Color.html(Data.SPECIES[id]["fur"])
-	preview.pet.build(id, col, GameState.material, "", GameState.mouth_style, GameState.current_iris(), 12)
+	_pp().build(id, col, GameState.material, "", GameState.mouth_style, GameState.current_iris(), _shells())
 	for slot in Data.SLOTS:
 		var it: String = GameState.equipped.get(slot, "")
-		preview.pet.set_item(slot, it, GameState.colors_for(it) if it != "" else {}, false)
+		_pp().set_item(slot, it, GameState.colors_for(it) if it != "" else {}, false)
 	_studio_env()
-	preview.pet.rotation.y = rot
+	_pp().rotation.y = rot
 	_previewing_look = true
-	preview.pet.act_hop(1)
+	_pp().act_hop(1)
 
 
 func _preview_look(section: String, id: String) -> void:
@@ -1428,15 +1495,15 @@ func _preview_look(section: String, id: String) -> void:
 			eyes = id
 		"mouth":
 			mouth = id
-	var rot := preview.pet.rotation.y
-	preview.pet.build(GameState.species, col, mat, eyes, mouth, GameState.current_iris(), 12)
+	var rot := _pp().rotation.y
+	_pp().build(GameState.species, col, mat, eyes, mouth, GameState.current_iris(), _shells())
 	for slot in Data.SLOTS:
 		var it: String = GameState.equipped.get(slot, "")
-		preview.pet.set_item(slot, it, GameState.colors_for(it) if it != "" else {}, false)
+		_pp().set_item(slot, it, GameState.colors_for(it) if it != "" else {}, false)
 	_studio_env()
-	preview.pet.rotation.y = rot
+	_pp().rotation.y = rot
 	_previewing_look = true
-	preview.pet.act_spin()
+	_pp().act_spin()
 
 
 func _fill_colors(holder: Control) -> void:
@@ -1460,7 +1527,7 @@ func _fill_colors(holder: Control) -> void:
 			_queue_commit(Callable(), 0.0)
 			GameState.set_fur_color(c)
 		else:
-			preview.pet.set_body_color(c)
+			_pp().set_body_color(c)
 			_queue_commit(func(): GameState.set_fur_color(c), 0.6))
 	c1.add_child(fur_swatches)
 	var reset := Button.new()
@@ -1780,7 +1847,7 @@ func _on_level_up(lv: int, rewards: Array) -> void:
 		parts.append(str(r.get("text", "")))
 	toast.show_msg("Niveau %d !  %s" % [lv, " · ".join(parts)], "star", UITheme.GOLD)
 	confetti.burst(Vector2(confetti.size.x * 0.5, confetti.size.y * 0.45), 70)
-	preview.pet.act_love()
+	_pp().act_love()
 	_update_level()
 	_refresh_level_card()
 	if current_tab == "look" and look_section == "species":
@@ -2118,7 +2185,7 @@ func _on_appearance() -> void:
 		name_edit.text = GameState.pet_name
 	_refresh_outfit()
 	if current_tab in Data.SLOTS:
-		preview.pet.set_item(current_tab, _sel.get(current_tab, GameState.equipped.get(current_tab, "")),
+		_pp().set_item(current_tab, _sel.get(current_tab, GameState.equipped.get(current_tab, "")),
 			_try_colors.get(_sel.get(current_tab, ""), {}) if _sel.get(current_tab, "") != "" else {}, false)
 	if current_tab == "look":
 		if look_section == "colors":
