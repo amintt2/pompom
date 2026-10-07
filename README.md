@@ -91,6 +91,12 @@ travaille avec toi, joue avec toi… et mange tes vieux fichiers.
 - Une IA de vision locale devine ce que tu fais (jeu, vidéo, code, documents, web, discussion) et **où est la vidéo** : il va s'asseoir dessous pour la regarder avec toi.
 - Une analyse toutes les 3 s, en pause pendant les jeux plein écran. Les images ne quittent jamais la mémoire de ton PC.
 
+### Il apprend de ses erreurs (optionnel)
+- Il s'est trompé (une « vidéo » alors que tu écoutes de la musique, un but pas fêté) ? **Clic droit → « Il s'est trompé… »**, ou clique-le pendant qu'il fait quelque chose tout seul : une pastille **« Il s'est trompé ? »** apparaît.
+- Tu choisis ce que tu faisais vraiment ; la correction est gardée **sur ton PC** pour ré-entraîner ses petits modèles sur de vraies situations.
+- **Partage anonyme** (désactivé par défaut) : seulement des nombres (l'« empreinte » de l'écran calculée sur ton PC) + ta correction, jamais d'image ni de texte. « Voir ce qui part » montre le JSON exact.
+- Tout s'efface d'un clic. Détails : [docs/donnees.md](docs/donnees.md).
+
 ### Petit assistant (optionnel)
 - **Gardien du presse-papiers** : ce que tu copies (image, texte, fichiers) apparaît sur sa tête.
   - Clic sur la carte : il la recopie. Glisse-la dehors : il la dépose.
@@ -140,6 +146,7 @@ vérification dans les réglages.
 - Pour savoir si tu travailles ou si tu joues, un petit script lit uniquement **ta durée d'inactivité** et le **nom de l'application au premier plan** (et son titre). Rien n'est enregistré à part tes statistiques de temps, rien n'est envoyé.
 - **Reflets** : il capture la petite zone de l'écran autour de lui, en mémoire seulement. Avec les reflets activés, Windows ne le montre pas sur tes captures d'écran (désactivable).
 - **Presse-papiers et IA** : ces options sont désactivées par défaut. Rien n'est écrit sur le disque, et il ignore ce qui vient des gestionnaires de mots de passe et ce qui ressemble à un secret.
+- **Corrections (« Il s'est trompé »)** : gardées sur ton PC. Le partage anonyme (des nombres, jamais d'image ni de texte) est désactivé par défaut. Tout est expliqué dans [docs/donnees.md](docs/donnees.md).
 
 ## 🛠️ Compiler depuis les sources
 
@@ -184,6 +191,7 @@ pompom/
 │  │  ├─ desktop/          Fenêtre de bureau, plateformes (fenêtres), capture d'écran, cerveau
 │  │  ├─ game/             Nourriture (fichiers → Corbeille), affichage du jeu
 │  │  ├─ assistant/        Presse-papiers, suggestions IA locales
+│  │  ├─ feedback/         « Il s'est trompé » : corrections, jeu de données local, partage anonyme, mode développeur
 │  │  ├─ ui/               Boutique, menus, thème, icônes, composants
 │  │  ├─ autoload/         Data (catalogue), GameState (sauvegarde, progression), Activity
 │  │  └─ util/             Mises à jour automatiques, démarrage avec Windows
@@ -193,7 +201,8 @@ pompom/
 │  ├─ data/                Ancrages des espèces, accessoires, visages, rig studio
 │  └─ tests/               Tests automatiques (boutique, presse-papiers, mises à jour)
 ├─ blender/                Scripts Blender (modèles, accessoires, visages, rendus de référence)
-├─ assistant/              Service de décision locale (stuntd + Laya)
+├─ assistant/              Service de décision locale (stuntd + Laya) ; tools/ : étiquetage et ré-entraînement sur données réelles
+├─ server/feedback/        Serveur auto-hébergé des contributions anonymes (FastAPI + SQLite, Coolify)
 ├─ docs/                   Images, idées et design
 └─ .github/workflows/      CI et publication des Releases
 ```
@@ -208,6 +217,8 @@ issus de ces rendus sont ensuite rejoués en temps réel dans Godot.
 - **Tests locaux** :
   - `powershell -File godot/tests/run_ui_test.ps1` : 209 vérifications de la boutique et des menus.
   - `powershell -File godot/tests/run_clipboard_test.ps1` : 70 vérifications du presse-papiers.
+  - `godot --path godot --headless res://tests/feedback_test.tscn` : 106 vérifications de la boucle de retour (jeu de données, contextes privés, contenu envoyé).
+  - `cd server/feedback; python -m pytest -q` : serveur de contributions.
 
 ## 🚀 Publier une version
 

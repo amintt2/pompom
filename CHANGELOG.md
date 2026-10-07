@@ -3,6 +3,21 @@
 Toutes les versions de Pompom. Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/)
 et les numéros suivent [SemVer](https://semver.org/lang/fr/).
 
+## [0.6.1-beta] - 2026-10-07
+
+### Il apprend de ses erreurs
+- **« Il s'est trompé… »** (clic droit), ou une pastille **« Il s'est trompé ? »** quand tu le cliques pendant qu'il fait quelque chose tout seul ou juste après un moment de jeu.
+- Une carte te demande ce que tu faisais vraiment (Vidéo, Musique, Jeu, Code, Claude / IA, Mails, Documents, Tableur, Discussion, Réseaux, Lecture, Design, Web, Visio, Autre…) et le moment de jeu qu'il a raté (« J'ai marqué », « Je suis mort »…).
+- Les corrections sont gardées **sur ton PC** (`%APPDATA%\Pompom\dataset`), avec l'« empreinte » numérique de l'écran calculée par l'assistant local (l'image n'est jamais écrite).
+- **Partage anonyme** (bientôt : le réglage apparaîtra quand le serveur sera en ligne ; réglage « Aider à améliorer Pompom (anonyme) », désactivé par défaut) : uniquement des nombres + la correction, jamais d'image, de titre ni de texte ; « Voir ce qui part » montre le JSON exact.
+- **Mode développeur** : captures locales toutes les 3 min (WebP, plafond 2 Go), jamais sur les fenêtres privées, en visio ou en stream.
+- Nouveau réglage « Effacer mes données d'entraînement ». Tout est expliqué dans [docs/donnees.md](docs/donnees.md).
+
+### Pour les développeurs
+- Service local : `POST /embed` (embedding normalisé de l'écran ou d'un champ, avec l'identifiant du modèle).
+- `assistant/tools/` : étiquetage des captures par un grand modèle de vision (`label_screens.py`, sortie JSON stricte, reprise, estimation du coût, `--dry-run`), jeu de données réel découpé par jour (`build_real_dataset.py`), ré-entraînement et comparaison aux têtes actuelles (`train_real_heads.py`).
+- `server/feedback/` : serveur FastAPI + SQLite pour Coolify (schéma strict, aucune IP ni journal).
+
 ## [0.6.0-beta] - 2026-10-07
 
 ### Un seul compagnon dans la boutique

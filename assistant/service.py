@@ -8,6 +8,8 @@ API (127.0.0.1 uniquement ; en-tete X-Pompom-Token obligatoire sauf /health) :
   POST /suggest {candidates:[...], field?:{...}}  -> {kind, index, confidence, label_fr, ...}
        (sans "field" : utilise le champ focus courant)
   POST /decide {question, options:[...], context?}  -> {answer, confidence, probs, ms}  (choix zero-shot Laya)
+  POST /embed {screen?, text?, field?}  -> embeddings L2 (ecran SigLIP / texte Laya) + model_id, dim
+       (boucle de retour sur donnees reelles : voir pompom_assist/feedback.py)
   GET  /vision                      -> {enabled, ready, probs:{game,video,work_code,work_docs,browse,chat,other},
                                         top, video_rect:[x,y,w,h]|null, fullscreen, is_watching_video, ts, ...}
   POST /vision/enable {on: bool}    -> active / coupe la vision (opt-in ; captures en memoire uniquement)
@@ -310,6 +312,11 @@ def make_handler(state: State, token: str, port: int):
                     return
                 self._send(200, {"answer": c.label, "confidence": round(c.confidence, 3),
                                  "probs": {k: round(v, 3) for k, v in c.probs.items()}, "ms": round(c.ms, 2)})
+                return
+            if u.path == "/embed":
+                from pompom_assist.feedback import handle_embed
+
+                self._send(*handle_embed(state, body))
                 return
             self._send(404, {"error": "not_found"})
 

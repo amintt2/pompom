@@ -2058,7 +2058,19 @@ func _build_settings_page() -> Control:
 	_setting_row(g4, "Garder ce que je copie", "Il se souvient de tout ce que tu copies (presse-papiers) pour le retrouver facilement.", _toggle_setting("clipboard"))
 	_setting_row(g4, "Suggestions intelligentes", "Une IA locale lui donne des idées. Rien ne quitte ton PC.", _toggle_setting("suggestions"))
 	_setting_row(g4, "Il regarde ton écran (bêta)", "Une IA locale devine si tu joues, regardes une vidéo ou travailles, et où est la vidéo : il va s'asseoir dessous pour la regarder avec toi. Les images restent en mémoire sur ton PC, jamais enregistrées ni envoyées. Nécessite l'assistant installé.", _toggle_setting("vision"))
-	_setting_row(g4, "IA sur la carte graphique", "Plus rapide. Désactive-le si ton PC ralentit.", _toggle_setting("ai_gpu"), false)
+	_setting_row(g4, "IA sur la carte graphique", "Plus rapide. Désactive-le si ton PC ralentit.", _toggle_setting("ai_gpu"))
+	if FeedbackUploader.is_configured(FeedbackUploader.resolve_endpoint()):  # (cache tant que le serveur n'existe pas)
+		_setting_row(g4, "Aider à améliorer Pompom (anonyme)", "Quand tu le corriges (« Il s'est trompé »), il peut partager des nombres anonymes calculés sur ton PC : jamais d'image, de titre ni de texte. Tu vois exactement ce qui part avant d'envoyer.", _toggle_setting("share_feedback"))
+	_setting_row(g4, "Mode développeur : collecter mes écrans", "Une capture de l'écran toutes les 3 minutes, gardée sur ce PC uniquement (2 Go max, jamais envoyée), pour entraîner ses modèles. Jamais sur les mots de passe, la banque, la navigation privée, en visio ou en stream.", _toggle_setting("dev_collect"))
+	var erase := Button.new()
+	erase.text = "Effacer"
+	erase.custom_minimum_size = Vector2(120, 40)
+	erase.pressed.connect(func():
+		_ask("Effacer tes données d'entraînement ?", "Tes corrections et les captures du mode développeur gardées sur ce PC seront supprimées. Ce qui a déjà été partagé anonymement n'est relié à rien et ne peut pas être retrouvé.", "Effacer", "close", -1, func():
+			var n := FeedbackStore.new().erase_all()
+			toast.show_msg("Données d'entraînement effacées" if n > 0 else "Il n'y avait rien à effacer", "check", UITheme.MINT)))
+	settings_ctrls["erase_feedback"] = erase
+	_setting_row(g4, "Effacer mes données d'entraînement", "Supprime tes corrections et les captures du mode développeur gardées sur ce PC.", erase, false)
 
 	var g3 := _group(col, "Système", "gear", "", UITheme.MINT)
 	_setting_row(g3, "Lancer au démarrage", "Pompom démarre en même temps que Windows.", _toggle_setting("autostart"))
@@ -2138,7 +2150,8 @@ func _option_index(key: String) -> int:
 ## Valeurs par defaut des reglages qui peuvent manquer dans une vieille sauvegarde.
 const SETTING_DEFAULTS := {"eat_files": true, "clipboard": false, "suggestions": false, "ai_gpu": true,
 	"screenshots": true, "share_visible": true, "auto_update": true, "competitive_hide": true, "game_saver": true,
-	"game_events": true, "hud_watch": false, "rl_screen_watch": false, "vision": false}
+	"game_events": true, "hud_watch": false, "rl_screen_watch": false, "vision": false, "share_feedback": false,
+	"dev_collect": false}
 
 
 static func setting_on(key: String) -> bool:

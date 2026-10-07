@@ -89,6 +89,7 @@ var _pending_setups: Array = []
 var _setup_dialog: ConfirmationDialog
 var _thinking_game := false
 var _think_t := 12.0
+var feedback: FeedbackHub  # « Il s'est trompé » : corrections, jeu de donnees local (voir scripts/feedback/)
 
 
 func setup(p_stage: PetStage, p_emotes: EmoteLayer) -> void:
@@ -173,6 +174,10 @@ func setup(p_stage: PetStage, p_emotes: EmoteLayer) -> void:
 	GameState.level_up.connect(_on_level_up)
 	GameState.quest_completed.connect(_on_quest_completed)
 	_setup_games()
+	feedback = FeedbackHub.new()
+	feedback.name = "Feedback"
+	add_child(feedback)
+	feedback.setup(self)
 
 	await get_tree().process_frame
 	if bool(GameState.stats.get("first_run", true)):
@@ -989,6 +994,8 @@ func _poke() -> void:
 		pet.wake_up()
 		_say(Data.line("wake"))
 		return
+	if feedback:
+		feedback.on_pet_clicked()  # avant qu'il ne reagisse : il fait encore son comportement automatique
 	_stop_move()
 	if randf() < 0.5:
 		pet.act_surprised()
@@ -1732,6 +1739,10 @@ func _menu_items() -> Array:
 				items.insert(i + 1, {"id": 13, "label": "Chercher une mise à jour", "icon": "sparkle", "tint": UITheme.SKY,
 					"hint": "v" + Updater.current_version()})
 				break
+	for i in items.size():
+		if int(items[i].get("id", -1)) == 7:
+			items.insert(i, {"id": 15, "label": "Il s'est trompé…", "icon": "pencil", "tint": UITheme.PEACH})
+			break
 	return items
 
 
@@ -1781,6 +1792,9 @@ func _on_menu(id: int) -> void:
 		12: updater.install()
 		13: check_updates_now()
 		14: open_minigames()
+		15:
+			if feedback:
+				feedback.open_card("menu")
 		9: quit()
 
 

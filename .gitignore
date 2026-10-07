@@ -1,5 +1,5 @@
 # Outils portables (telecharges par setup_tools.ps1)
-tools/
+/tools/
 
 # Builds (publies dans les Releases GitHub)
 build/
@@ -39,3 +39,8 @@ assistant/heads/
 *.safetensors
 *.pt
 *.onnx
+
+# Boucle de retour : donnees reelles locales (captures, titres, embeddings) - jamais dans le depot
+assistant/data/real/
+server/feedback/*.db*
+server/feedback/.venv/

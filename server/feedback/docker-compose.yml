@@ -1,0 +1,34 @@
+# Coolify : « New Resource » -> « Docker Compose » depuis ce depot, chemin de base /server/feedback
+# (voir README.md). Un seul service ; la base SQLite vit dans le volume « feedback-data ».
+services:
+  feedback:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - ADMIN_TOKEN=${ADMIN_TOKEN}
+      - MAX_BODY=${MAX_BODY:-262144}
+      - MAX_ITEMS=${MAX_ITEMS:-32}
+      - RATE_LIMIT=${RATE_LIMIT:-120/3600}
+      - TRUSTED_PROXY_HOPS=${TRUSTED_PROXY_HOPS:-1}
+      - RETENTION_DAYS=${RETENTION_DAYS:-730}
+      - DB_PATH=/data/feedback.db
+    volumes:
+      - feedback-data:/data
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/v1/health', timeout=4).status == 200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+volumes:
+  feedback-data:
