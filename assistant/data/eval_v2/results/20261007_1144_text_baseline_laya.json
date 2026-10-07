@@ -1,0 +1,2617 @@
+{
+ "n_rows": 1850,
+ "configs": [
+  {
+   "config": "rules (avant garde secrets)",
+   "n": 1850,
+   "n_non_secret": 1690,
+   "n_secret": 160,
+   "field_kind_acc": 0.755,
+   "right_suggestion_acc": 0.765,
+   "end_to_end_acc": 0.673,
+   "secrets_never_suggested": 1.0,
+   "secret_rows_leaked": 0,
+   "false_secret_rows": 0,
+   "p50_ms": 0.32,
+   "p95_ms": 0.48,
+   "model_call_share": 0.0,
+   "model_call_p50_ms": null,
+   "model_call_p95_ms": null,
+   "breakdown": {
+    "kind:address": [
+     0.671,
+     155
+    ],
+    "kind:chat_message": [
+     0.7,
+     140
+    ],
+    "kind:code": [
+     0.212,
+     118
+    ],
+    "kind:date": [
+     0.72,
+     125
+    ],
+    "kind:email": [
+     0.861,
+     158
+    ],
+    "kind:name": [
+     0.417,
+     120
+    ],
+    "kind:number": [
+     0.504,
+     125
+    ],
+    "kind:other": [
+     0.988,
+     168
+    ],
+    "kind:phone": [
+     0.8,
+     125
+    ],
+    "kind:search": [
+     0.545,
+     231
+    ],
+    "kind:url": [
+     0.873,
+     110
+    ],
+    "kind:username": [
+     0.722,
+     115
+    ],
+    "lang:en": [
+     0.634,
+     557
+    ],
+    "lang:fr": [
+     0.683,
+     1048
+    ],
+    "lang:mix": [
+     0.8,
+     85
+    ],
+    "secret": [
+     1.0,
+     160
+    ],
+    "tag:adversarial": [
+     0.714,
+     185
+    ],
+    "tag:chat": [
+     0.7,
+     140
+    ],
+    "tag:code": [
+     0.191,
+     110
+    ],
+    "tag:desktop": [
+     0.599,
+     252
+    ],
+    "tag:map": [
+     0.183,
+     60
+    ],
+    "tag:noisy": [
+     0.624,
+     205
+    ],
+    "tag:other": [
+     0.983,
+     120
+    ],
+    "tag:seen_vocab": [
+     0.75,
+     40
+    ],
+    "tag:web": [
+     0.684,
+     1293
+    ]
+   },
+   "errors": [
+    {
+     "id": "t0004",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "👉 Emial adress",
+     "title": "Transavia : Formulaire de contact"
+    },
+    {
+     "id": "t0005",
+     "want": [
+      "email",
+      2
+     ],
+     "got": [
+      "address",
+      -1,
+      "rules",
+      "rules"
+     ],
+     "name": "",
+     "title": "Get in touch - Nike - Opera"
+    },
+    {
+     "id": "t0017",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "Work em-ail",
+     "title": "Créer mon espace | easyJet - Personnel - Microsoft​ Edge"
+    },
+    {
+     "id": "t0018",
+     "want": [
+      "email",
+      2
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "Saisis ton mail",
+     "title": "Mes informations – Showroomprivé"
+    },
+    {
+     "id": "t0024",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "Adrese mail",
+     "title": "Demande de devis | Materiel.net - Google Chrome"
+    },
+    {
+     "id": "t0037",
+     "want": [
+      "email",
+      -1
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "none"
+     ],
+     "name": "prenomdomaine.fr",
+     "title": "Get started | Oxybul et 3 pages de plus - Profil 1 - Microsoft Edge"
+    },
+    {
+     "id": "t0041",
+     "want": [
+      "email",
+      2
+     ],
+     "got": [
+      "name",
+      -1,
+      "rules",
+      "rules"
+     ],
+     "name": "E-mial",
+     "title": "Get in touch | Mutuelle Bleue"
+    },
+    {
+     "id": "t0049",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "name@company.com",
+     "title": "Get started - Udemy - Brave"
+    },
+    {
+     "id": "t0050",
+     "want": [
+      "email",
+      3
+     ],
+     "got": [
+      "name",
+      1,
+      "rules",
+      "rules"
+     ],
+     "name": "",
+     "title": "Validation du panier - Patreon - Google Chrome"
+    },
+    {
+     "id": "t0053",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "Emial adress",
+     "title": "Qonto : Your details - Opera"
+    },
+    {
+     "id": "t0072",
+     "want": [
+      "email",
+      1
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "Saisis ton mail *",
+     "title": "Lime : Join now - Microsoft​ Edge"
+    },
+    {
+     "id": "t0076",
+     "want": [
+      "email",
+      1
+     ],
+     "got": [
+      "name",
+      -1,
+      "rules",
+      "rules"
+     ],
+     "name": "prenom@dmoaine.fr",
+     "title": "Se connecter à mon compte | Miro - Google Chrome"
+    },
+    {
+     "id": "t0081",
+     "want": [
+      "email",
+      2
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "Emial adress",
+     "title": "Créer mon espace | Picard"
+    },
+    {
+     "id": "t0084",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "",
+     "title": "Demande de devis | Qonto"
+    },
+    {
+     "id": "t0087",
+     "want": [
+      "email",
+      -1
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "Sasis ton mail*",
+     "title": "Créer mon espace | Picard"
+    },
+    {
+     "id": "t0101",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "Saisis ton mail",
+     "title": "Log in to continue | Micromania"
+    },
+    {
+     "id": "t0107",
+     "want": [
+      "email",
+      2
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "★ Emial adress",
+     "title": "Devenir membre - Oxybul"
+    },
+    {
+     "id": "t0108",
+     "want": [
+      "email",
+      -1
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "Adresem ail",
+     "title": "Create your account | Udemy - Vivaldi"
+    },
+    {
+     "id": "t0110",
+     "want": [
+      "email",
+      2
+     ],
+     "got": [
+      "name",
+      -1,
+      "rules",
+      "rules"
+     ],
+     "name": "",
+     "title": "Étape 2 sur 4 – Deliveroo"
+    },
+    {
+     "id": "t0113",
+     "want": [
+      "email",
+      -1
+     ],
+     "got": [
+      "address",
+      -1,
+      "rules",
+      "rules"
+     ],
+     "name": "",
+     "title": "Alan : Se connecter à mon compte - Google Chrome"
+    },
+    {
+     "id": "t0114",
+     "want": [
+      "email",
+      -1
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "",
+     "title": "Lydia : Demande de devis - Google Chrome"
+    },
+    {
+     "id": "t0139",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "address",
+      -1,
+      "rules",
+      "rules"
+     ],
+     "name": "ADRESSE MÉL",
+     "title": "Mes informations - Service-public.fr - Google Chrome"
+    },
+    {
+     "id": "t0140",
+     "want": [
+      "phone",
+      0
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "N° detéléphone",
+     "title": "Livraison et paiement - Swile"
+    },
+    {
+     "id": "t0143",
+     "want": [
+      "phone",
+      0
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "",
+     "title": "Coordonnées | Showroomprivé"
+    },
+    {
+     "id": "t0151",
+     "want": [
+      "phone",
+      0
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "",
+     "title": "LDLC : Votre voyage - Google Chrome"
+    }
+   ]
+  },
+  {
+   "config": "rules + garde secrets",
+   "n": 1850,
+   "n_non_secret": 1690,
+   "n_secret": 160,
+   "field_kind_acc": 0.755,
+   "right_suggestion_acc": 0.765,
+   "end_to_end_acc": 0.673,
+   "secrets_never_suggested": 1.0,
+   "secret_rows_leaked": 0,
+   "false_secret_rows": 0,
+   "p50_ms": 0.46,
+   "p95_ms": 0.61,
+   "model_call_share": 0.0,
+   "model_call_p50_ms": null,
+   "model_call_p95_ms": null,
+   "breakdown": {
+    "kind:address": [
+     0.671,
+     155
+    ],
+    "kind:chat_message": [
+     0.7,
+     140
+    ],
+    "kind:code": [
+     0.212,
+     118
+    ],
+    "kind:date": [
+     0.72,
+     125
+    ],
+    "kind:email": [
+     0.861,
+     158
+    ],
+    "kind:name": [
+     0.417,
+     120
+    ],
+    "kind:number": [
+     0.504,
+     125
+    ],
+    "kind:other": [
+     0.988,
+     168
+    ],
+    "kind:phone": [
+     0.8,
+     125
+    ],
+    "kind:search": [
+     0.545,
+     231
+    ],
+    "kind:url": [
+     0.873,
+     110
+    ],
+    "kind:username": [
+     0.722,
+     115
+    ],
+    "lang:en": [
+     0.634,
+     557
+    ],
+    "lang:fr": [
+     0.683,
+     1048
+    ],
+    "lang:mix": [
+     0.8,
+     85
+    ],
+    "secret": [
+     1.0,
+     160
+    ],
+    "tag:adversarial": [
+     0.714,
+     185
+    ],
+    "tag:chat": [
+     0.7,
+     140
+    ],
+    "tag:code": [
+     0.191,
+     110
+    ],
+    "tag:desktop": [
+     0.599,
+     252
+    ],
+    "tag:map": [
+     0.183,
+     60
+    ],
+    "tag:noisy": [
+     0.624,
+     205
+    ],
+    "tag:other": [
+     0.983,
+     120
+    ],
+    "tag:seen_vocab": [
+     0.75,
+     40
+    ],
+    "tag:web": [
+     0.684,
+     1293
+    ]
+   },
+   "errors": [
+    {
+     "id": "t0004",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "👉 Emial adress",
+     "title": "Transavia : Formulaire de contact"
+    },
+    {
+     "id": "t0005",
+     "want": [
+      "email",
+      2
+     ],
+     "got": [
+      "address",
+      -1,
+      "rules",
+      "rules"
+     ],
+     "name": "",
+     "title": "Get in touch - Nike - Opera"
+    },
+    {
+     "id": "t0017",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "Work em-ail",
+     "title": "Créer mon espace | easyJet - Personnel - Microsoft​ Edge"
+    },
+    {
+     "id": "t0018",
+     "want": [
+      "email",
+      2
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "Saisis ton mail",
+     "title": "Mes informations – Showroomprivé"
+    },
+    {
+     "id": "t0024",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "Adrese mail",
+     "title": "Demande de devis | Materiel.net - Google Chrome"
+    },
+    {
+     "id": "t0037",
+     "want": [
+      "email",
+      -1
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "none"
+     ],
+     "name": "prenomdomaine.fr",
+     "title": "Get started | Oxybul et 3 pages de plus - Profil 1 - Microsoft Edge"
+    },
+    {
+     "id": "t0041",
+     "want": [
+      "email",
+      2
+     ],
+     "got": [
+      "name",
+      -1,
+      "rules",
+      "rules"
+     ],
+     "name": "E-mial",
+     "title": "Get in touch | Mutuelle Bleue"
+    },
+    {
+     "id": "t0049",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "name@company.com",
+     "title": "Get started - Udemy - Brave"
+    },
+    {
+     "id": "t0050",
+     "want": [
+      "email",
+      3
+     ],
+     "got": [
+      "name",
+      1,
+      "rules",
+      "rules"
+     ],
+     "name": "",
+     "title": "Validation du panier - Patreon - Google Chrome"
+    },
+    {
+     "id": "t0053",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "Emial adress",
+     "title": "Qonto : Your details - Opera"
+    },
+    {
+     "id": "t0072",
+     "want": [
+      "email",
+      1
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "Saisis ton mail *",
+     "title": "Lime : Join now - Microsoft​ Edge"
+    },
+    {
+     "id": "t0076",
+     "want": [
+      "email",
+      1
+     ],
+     "got": [
+      "name",
+      -1,
+      "rules",
+      "rules"
+     ],
+     "name": "prenom@dmoaine.fr",
+     "title": "Se connecter à mon compte | Miro - Google Chrome"
+    },
+    {
+     "id": "t0081",
+     "want": [
+      "email",
+      2
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "Emial adress",
+     "title": "Créer mon espace | Picard"
+    },
+    {
+     "id": "t0084",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "",
+     "title": "Demande de devis | Qonto"
+    },
+    {
+     "id": "t0087",
+     "want": [
+      "email",
+      -1
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "Sasis ton mail*",
+     "title": "Créer mon espace | Picard"
+    },
+    {
+     "id": "t0101",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "Saisis ton mail",
+     "title": "Log in to continue | Micromania"
+    },
+    {
+     "id": "t0107",
+     "want": [
+      "email",
+      2
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "★ Emial adress",
+     "title": "Devenir membre - Oxybul"
+    },
+    {
+     "id": "t0108",
+     "want": [
+      "email",
+      -1
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "Adresem ail",
+     "title": "Create your account | Udemy - Vivaldi"
+    },
+    {
+     "id": "t0110",
+     "want": [
+      "email",
+      2
+     ],
+     "got": [
+      "name",
+      -1,
+      "rules",
+      "rules"
+     ],
+     "name": "",
+     "title": "Étape 2 sur 4 – Deliveroo"
+    },
+    {
+     "id": "t0113",
+     "want": [
+      "email",
+      -1
+     ],
+     "got": [
+      "address",
+      -1,
+      "rules",
+      "rules"
+     ],
+     "name": "",
+     "title": "Alan : Se connecter à mon compte - Google Chrome"
+    },
+    {
+     "id": "t0114",
+     "want": [
+      "email",
+      -1
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "",
+     "title": "Lydia : Demande de devis - Google Chrome"
+    },
+    {
+     "id": "t0139",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "address",
+      -1,
+      "rules",
+      "rules"
+     ],
+     "name": "ADRESSE MÉL",
+     "title": "Mes informations - Service-public.fr - Google Chrome"
+    },
+    {
+     "id": "t0140",
+     "want": [
+      "phone",
+      0
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "N° detéléphone",
+     "title": "Livraison et paiement - Swile"
+    },
+    {
+     "id": "t0143",
+     "want": [
+      "phone",
+      0
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "",
+     "title": "Coordonnées | Showroomprivé"
+    },
+    {
+     "id": "t0151",
+     "want": [
+      "phone",
+      0
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "",
+     "title": "LDLC : Votre voyage - Google Chrome"
+    }
+   ]
+  },
+  {
+   "config": "laya hybride (tel que livre, sans garde)",
+   "n": 1850,
+   "n_non_secret": 1690,
+   "n_secret": 160,
+   "field_kind_acc": 0.779,
+   "right_suggestion_acc": 0.777,
+   "end_to_end_acc": 0.687,
+   "secrets_never_suggested": 0.881,
+   "secret_rows_leaked": 19,
+   "false_secret_rows": 0,
+   "p50_ms": 0.56,
+   "p95_ms": 126.32,
+   "model_call_share": 0.411,
+   "model_call_p50_ms": 112.5,
+   "model_call_p95_ms": 132.9,
+   "breakdown": {
+    "kind:address": [
+     0.658,
+     155
+    ],
+    "kind:chat_message": [
+     0.736,
+     140
+    ],
+    "kind:code": [
+     0.28,
+     118
+    ],
+    "kind:date": [
+     0.72,
+     125
+    ],
+    "kind:email": [
+     0.848,
+     158
+    ],
+    "kind:name": [
+     0.483,
+     120
+    ],
+    "kind:number": [
+     0.688,
+     125
+    ],
+    "kind:other": [
+     0.696,
+     168
+    ],
+    "kind:phone": [
+     0.856,
+     125
+    ],
+    "kind:search": [
+     0.636,
+     231
+    ],
+    "kind:url": [
+     0.9,
+     110
+    ],
+    "kind:username": [
+     0.739,
+     115
+    ],
+    "lang:en": [
+     0.689,
+     557
+    ],
+    "lang:fr": [
+     0.675,
+     1048
+    ],
+    "lang:mix": [
+     0.824,
+     85
+    ],
+    "secret": [
+     0.881,
+     160
+    ],
+    "tag:adversarial": [
+     0.735,
+     185
+    ],
+    "tag:chat": [
+     0.736,
+     140
+    ],
+    "tag:code": [
+     0.264,
+     110
+    ],
+    "tag:desktop": [
+     0.571,
+     252
+    ],
+    "tag:map": [
+     0.3,
+     60
+    ],
+    "tag:noisy": [
+     0.698,
+     205
+    ],
+    "tag:other": [
+     0.592,
+     120
+    ],
+    "tag:seen_vocab": [
+     0.75,
+     40
+    ],
+    "tag:web": [
+     0.705,
+     1293
+    ]
+   },
+   "errors": [
+    {
+     "id": "t0004",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "👉 Emial adress",
+     "title": "Transavia : Formulaire de contact"
+    },
+    {
+     "id": "t0005",
+     "want": [
+      "email",
+      2
+     ],
+     "got": [
+      "address",
+      -1,
+      "rules",
+      "rules"
+     ],
+     "name": "",
+     "title": "Get in touch - Nike - Opera"
+    },
+    {
+     "id": "t0017",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "Work em-ail",
+     "title": "Créer mon espace | easyJet - Personnel - Microsoft​ Edge"
+    },
+    {
+     "id": "t0018",
+     "want": [
+      "email",
+      2
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "Saisis ton mail",
+     "title": "Mes informations – Showroomprivé"
+    },
+    {
+     "id": "t0024",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "Adrese mail",
+     "title": "Demande de devis | Materiel.net - Google Chrome"
+    },
+    {
+     "id": "t0037",
+     "want": [
+      "email",
+      -1
+     ],
+     "got": [
+      "address",
+      -1,
+      "head",
+      "none"
+     ],
+     "name": "prenomdomaine.fr",
+     "title": "Get started | Oxybul et 3 pages de plus - Profil 1 - Microsoft Edge"
+    },
+    {
+     "id": "t0041",
+     "want": [
+      "email",
+      2
+     ],
+     "got": [
+      "name",
+      -1,
+      "rules",
+      "rules"
+     ],
+     "name": "E-mial",
+     "title": "Get in touch | Mutuelle Bleue"
+    },
+    {
+     "id": "t0049",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "name@company.com",
+     "title": "Get started - Udemy - Brave"
+    },
+    {
+     "id": "t0050",
+     "want": [
+      "email",
+      3
+     ],
+     "got": [
+      "name",
+      1,
+      "rules",
+      "rules"
+     ],
+     "name": "",
+     "title": "Validation du panier - Patreon - Google Chrome"
+    },
+    {
+     "id": "t0053",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "Emial adress",
+     "title": "Qonto : Your details - Opera"
+    },
+    {
+     "id": "t0060",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "address",
+      -1,
+      "head",
+      "rules"
+     ],
+     "name": "Votre adresse courriel",
+     "title": "Log in to continue – Société Générale"
+    },
+    {
+     "id": "t0072",
+     "want": [
+      "email",
+      1
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "Saisis ton mail *",
+     "title": "Lime : Join now - Microsoft​ Edge"
+    },
+    {
+     "id": "t0076",
+     "want": [
+      "email",
+      1
+     ],
+     "got": [
+      "name",
+      -1,
+      "rules",
+      "rules"
+     ],
+     "name": "prenom@dmoaine.fr",
+     "title": "Se connecter à mon compte | Miro - Google Chrome"
+    },
+    {
+     "id": "t0081",
+     "want": [
+      "email",
+      2
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "Emial adress",
+     "title": "Créer mon espace | Picard"
+    },
+    {
+     "id": "t0084",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "phone",
+      -1,
+      "head",
+      "rules"
+     ],
+     "name": "",
+     "title": "Demande de devis | Qonto"
+    },
+    {
+     "id": "t0087",
+     "want": [
+      "email",
+      -1
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "Sasis ton mail*",
+     "title": "Créer mon espace | Picard"
+    },
+    {
+     "id": "t0101",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "username",
+      -1,
+      "head",
+      "rules"
+     ],
+     "name": "Saisis ton mail",
+     "title": "Log in to continue | Micromania"
+    },
+    {
+     "id": "t0108",
+     "want": [
+      "email",
+      -1
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "Adresem ail",
+     "title": "Create your account | Udemy - Vivaldi"
+    },
+    {
+     "id": "t0110",
+     "want": [
+      "email",
+      2
+     ],
+     "got": [
+      "name",
+      -1,
+      "rules",
+      "rules"
+     ],
+     "name": "",
+     "title": "Étape 2 sur 4 – Deliveroo"
+    },
+    {
+     "id": "t0113",
+     "want": [
+      "email",
+      -1
+     ],
+     "got": [
+      "address",
+      -1,
+      "rules",
+      "rules"
+     ],
+     "name": "",
+     "title": "Alan : Se connecter à mon compte - Google Chrome"
+    },
+    {
+     "id": "t0114",
+     "want": [
+      "email",
+      -1
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "",
+     "title": "Lydia : Demande de devis - Google Chrome"
+    },
+    {
+     "id": "t0138",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "address",
+      -1,
+      "head",
+      "rules"
+     ],
+     "name": "Email ID (obligatoire)",
+     "title": "SoundCloud : Log in to continue - Google Chrome"
+    },
+    {
+     "id": "t0139",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "address",
+      -1,
+      "rules",
+      "rules"
+     ],
+     "name": "ADRESSE MÉL",
+     "title": "Mes informations - Service-public.fr - Google Chrome"
+    },
+    {
+     "id": "t0140",
+     "want": [
+      "phone",
+      0
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "N° detéléphone",
+     "title": "Livraison et paiement - Swile"
+    },
+    {
+     "id": "t0143",
+     "want": [
+      "phone",
+      0
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "",
+     "title": "Coordonnées | Showroomprivé"
+    }
+   ]
+  },
+  {
+   "config": "laya hybride + garde",
+   "n": 1850,
+   "n_non_secret": 1690,
+   "n_secret": 160,
+   "field_kind_acc": 0.779,
+   "right_suggestion_acc": 0.786,
+   "end_to_end_acc": 0.687,
+   "secrets_never_suggested": 0.988,
+   "secret_rows_leaked": 2,
+   "false_secret_rows": 0,
+   "p50_ms": 0.71,
+   "p95_ms": 120.19,
+   "model_call_share": 0.353,
+   "model_call_p50_ms": 108.7,
+   "model_call_p95_ms": 125.6,
+   "breakdown": {
+    "kind:address": [
+     0.658,
+     155
+    ],
+    "kind:chat_message": [
+     0.736,
+     140
+    ],
+    "kind:code": [
+     0.28,
+     118
+    ],
+    "kind:date": [
+     0.72,
+     125
+    ],
+    "kind:email": [
+     0.848,
+     158
+    ],
+    "kind:name": [
+     0.483,
+     120
+    ],
+    "kind:number": [
+     0.688,
+     125
+    ],
+    "kind:other": [
+     0.696,
+     168
+    ],
+    "kind:phone": [
+     0.856,
+     125
+    ],
+    "kind:search": [
+     0.636,
+     231
+    ],
+    "kind:url": [
+     0.9,
+     110
+    ],
+    "kind:username": [
+     0.739,
+     115
+    ],
+    "lang:en": [
+     0.689,
+     557
+    ],
+    "lang:fr": [
+     0.675,
+     1048
+    ],
+    "lang:mix": [
+     0.824,
+     85
+    ],
+    "secret": [
+     0.988,
+     160
+    ],
+    "tag:adversarial": [
+     0.735,
+     185
+    ],
+    "tag:chat": [
+     0.736,
+     140
+    ],
+    "tag:code": [
+     0.264,
+     110
+    ],
+    "tag:desktop": [
+     0.571,
+     252
+    ],
+    "tag:map": [
+     0.3,
+     60
+    ],
+    "tag:noisy": [
+     0.698,
+     205
+    ],
+    "tag:other": [
+     0.592,
+     120
+    ],
+    "tag:seen_vocab": [
+     0.75,
+     40
+    ],
+    "tag:web": [
+     0.705,
+     1293
+    ]
+   },
+   "errors": [
+    {
+     "id": "t0004",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "👉 Emial adress",
+     "title": "Transavia : Formulaire de contact"
+    },
+    {
+     "id": "t0005",
+     "want": [
+      "email",
+      2
+     ],
+     "got": [
+      "address",
+      -1,
+      "rules",
+      "rules"
+     ],
+     "name": "",
+     "title": "Get in touch - Nike - Opera"
+    },
+    {
+     "id": "t0017",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "Work em-ail",
+     "title": "Créer mon espace | easyJet - Personnel - Microsoft​ Edge"
+    },
+    {
+     "id": "t0018",
+     "want": [
+      "email",
+      2
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "Saisis ton mail",
+     "title": "Mes informations – Showroomprivé"
+    },
+    {
+     "id": "t0024",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "Adrese mail",
+     "title": "Demande de devis | Materiel.net - Google Chrome"
+    },
+    {
+     "id": "t0037",
+     "want": [
+      "email",
+      -1
+     ],
+     "got": [
+      "address",
+      -1,
+      "head",
+      "none"
+     ],
+     "name": "prenomdomaine.fr",
+     "title": "Get started | Oxybul et 3 pages de plus - Profil 1 - Microsoft Edge"
+    },
+    {
+     "id": "t0041",
+     "want": [
+      "email",
+      2
+     ],
+     "got": [
+      "name",
+      -1,
+      "rules",
+      "rules"
+     ],
+     "name": "E-mial",
+     "title": "Get in touch | Mutuelle Bleue"
+    },
+    {
+     "id": "t0049",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "name@company.com",
+     "title": "Get started - Udemy - Brave"
+    },
+    {
+     "id": "t0050",
+     "want": [
+      "email",
+      3
+     ],
+     "got": [
+      "name",
+      1,
+      "rules",
+      "rules"
+     ],
+     "name": "",
+     "title": "Validation du panier - Patreon - Google Chrome"
+    },
+    {
+     "id": "t0053",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "Emial adress",
+     "title": "Qonto : Your details - Opera"
+    },
+    {
+     "id": "t0060",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "address",
+      -1,
+      "head",
+      "rules"
+     ],
+     "name": "Votre adresse courriel",
+     "title": "Log in to continue – Société Générale"
+    },
+    {
+     "id": "t0072",
+     "want": [
+      "email",
+      1
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "Saisis ton mail *",
+     "title": "Lime : Join now - Microsoft​ Edge"
+    },
+    {
+     "id": "t0076",
+     "want": [
+      "email",
+      1
+     ],
+     "got": [
+      "name",
+      -1,
+      "rules",
+      "rules"
+     ],
+     "name": "prenom@dmoaine.fr",
+     "title": "Se connecter à mon compte | Miro - Google Chrome"
+    },
+    {
+     "id": "t0081",
+     "want": [
+      "email",
+      2
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "Emial adress",
+     "title": "Créer mon espace | Picard"
+    },
+    {
+     "id": "t0084",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "phone",
+      -1,
+      "head",
+      "rules"
+     ],
+     "name": "",
+     "title": "Demande de devis | Qonto"
+    },
+    {
+     "id": "t0087",
+     "want": [
+      "email",
+      -1
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "Sasis ton mail*",
+     "title": "Créer mon espace | Picard"
+    },
+    {
+     "id": "t0101",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "username",
+      -1,
+      "head",
+      "rules"
+     ],
+     "name": "Saisis ton mail",
+     "title": "Log in to continue | Micromania"
+    },
+    {
+     "id": "t0108",
+     "want": [
+      "email",
+      -1
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "Adresem ail",
+     "title": "Create your account | Udemy - Vivaldi"
+    },
+    {
+     "id": "t0110",
+     "want": [
+      "email",
+      2
+     ],
+     "got": [
+      "name",
+      -1,
+      "rules",
+      "rules"
+     ],
+     "name": "",
+     "title": "Étape 2 sur 4 – Deliveroo"
+    },
+    {
+     "id": "t0113",
+     "want": [
+      "email",
+      -1
+     ],
+     "got": [
+      "address",
+      -1,
+      "rules",
+      "rules"
+     ],
+     "name": "",
+     "title": "Alan : Se connecter à mon compte - Google Chrome"
+    },
+    {
+     "id": "t0114",
+     "want": [
+      "email",
+      -1
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "",
+     "title": "Lydia : Demande de devis - Google Chrome"
+    },
+    {
+     "id": "t0138",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "address",
+      -1,
+      "head",
+      "rules"
+     ],
+     "name": "Email ID (obligatoire)",
+     "title": "SoundCloud : Log in to continue - Google Chrome"
+    },
+    {
+     "id": "t0139",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "address",
+      -1,
+      "rules",
+      "rules"
+     ],
+     "name": "ADRESSE MÉL",
+     "title": "Mes informations - Service-public.fr - Google Chrome"
+    },
+    {
+     "id": "t0140",
+     "want": [
+      "phone",
+      0
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "N° detéléphone",
+     "title": "Livraison et paiement - Swile"
+    },
+    {
+     "id": "t0143",
+     "want": [
+      "phone",
+      0
+     ],
+     "got": [
+      "other",
+      -1,
+      "rules-fallback",
+      "rules"
+     ],
+     "name": "",
+     "title": "Coordonnées | Showroomprivé"
+    }
+   ]
+  },
+  {
+   "config": "laya tetes seules + garde",
+   "n": 1850,
+   "n_non_secret": 1690,
+   "n_secret": 160,
+   "field_kind_acc": 0.634,
+   "right_suggestion_acc": 0.723,
+   "end_to_end_acc": 0.542,
+   "secrets_never_suggested": 0.969,
+   "secret_rows_leaked": 5,
+   "false_secret_rows": 0,
+   "p50_ms": 239.04,
+   "p95_ms": 294.09,
+   "model_call_share": 0.925,
+   "model_call_p50_ms": 240.6,
+   "model_call_p95_ms": 294.1,
+   "breakdown": {
+    "kind:address": [
+     0.51,
+     155
+    ],
+    "kind:chat_message": [
+     0.579,
+     140
+    ],
+    "kind:code": [
+     0.339,
+     118
+    ],
+    "kind:date": [
+     0.648,
+     125
+    ],
+    "kind:email": [
+     0.703,
+     158
+    ],
+    "kind:name": [
+     0.458,
+     120
+    ],
+    "kind:number": [
+     0.704,
+     125
+    ],
+    "kind:other": [
+     0.083,
+     168
+    ],
+    "kind:phone": [
+     0.784,
+     125
+    ],
+    "kind:search": [
+     0.589,
+     231
+    ],
+    "kind:url": [
+     0.736,
+     110
+    ],
+    "kind:username": [
+     0.452,
+     115
+    ],
+    "lang:en": [
+     0.594,
+     557
+    ],
+    "lang:fr": [
+     0.497,
+     1048
+    ],
+    "lang:mix": [
+     0.753,
+     85
+    ],
+    "secret": [
+     0.969,
+     160
+    ],
+    "tag:adversarial": [
+     0.335,
+     185
+    ],
+    "tag:chat": [
+     0.579,
+     140
+    ],
+    "tag:code": [
+     0.345,
+     110
+    ],
+    "tag:desktop": [
+     0.357,
+     252
+    ],
+    "tag:map": [
+     0.35,
+     60
+    ],
+    "tag:noisy": [
+     0.649,
+     205
+    ],
+    "tag:other": [
+     0.1,
+     120
+    ],
+    "tag:seen_vocab": [
+     0.35,
+     40
+    ],
+    "tag:web": [
+     0.602,
+     1293
+    ]
+   },
+   "errors": [
+    {
+     "id": "t0003",
+     "want": [
+      "email",
+      -1
+     ],
+     "got": [
+      "phone",
+      0,
+      "head",
+      "head"
+     ],
+     "name": "Work e-mail",
+     "title": "Demande de devis | Getaround - Personnel - Microsoft​ Edge"
+    },
+    {
+     "id": "t0005",
+     "want": [
+      "email",
+      2
+     ],
+     "got": [
+      "address",
+      -1,
+      "head",
+      "head"
+     ],
+     "name": "",
+     "title": "Get in touch - Nike - Opera"
+    },
+    {
+     "id": "t0006",
+     "want": [
+      "email",
+      3
+     ],
+     "got": [
+      "url",
+      0,
+      "head",
+      "head"
+     ],
+     "name": "Courriel (requis)",
+     "title": "Veepee : Join now et 3 pages de plus - Profil 1 - Microsoft Edge"
+    },
+    {
+     "id": "t0007",
+     "want": [
+      "email",
+      2
+     ],
+     "got": [
+      "address",
+      -1,
+      "head",
+      "head"
+     ],
+     "name": "Email ID",
+     "title": "Finaliser ma commande - Showroomprivé"
+    },
+    {
+     "id": "t0017",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "number",
+      -1,
+      "head",
+      "head"
+     ],
+     "name": "Work em-ail",
+     "title": "Créer mon espace | easyJet - Personnel - Microsoft​ Edge"
+    },
+    {
+     "id": "t0018",
+     "want": [
+      "email",
+      2
+     ],
+     "got": [
+      "address",
+      -1,
+      "head",
+      "head"
+     ],
+     "name": "Saisis ton mail",
+     "title": "Mes informations – Showroomprivé"
+    },
+    {
+     "id": "t0020",
+     "want": [
+      "email",
+      2
+     ],
+     "got": [
+      "url",
+      -1,
+      "head",
+      "head"
+     ],
+     "name": "E-mail professionnel",
+     "title": "Welcome back - Ryanair"
+    },
+    {
+     "id": "t0024",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "address",
+      -1,
+      "head",
+      "head"
+     ],
+     "name": "Adrese mail",
+     "title": "Demande de devis | Materiel.net - Google Chrome"
+    },
+    {
+     "id": "t0029",
+     "want": [
+      "email",
+      3
+     ],
+     "got": [
+      "url",
+      -1,
+      "head",
+      "head"
+     ],
+     "name": "E-mail professionnel",
+     "title": "Se connecter à mon compte | Vertbaudet - Google Chrome"
+    },
+    {
+     "id": "t0030",
+     "want": [
+      "email",
+      -1
+     ],
+     "got": [
+      "url",
+      -1,
+      "head",
+      "head"
+     ],
+     "name": "E-mail professionnel",
+     "title": "Ryanair : Rejoindre - Google Chrome"
+    },
+    {
+     "id": "t0031",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "url",
+      1,
+      "head",
+      "head"
+     ],
+     "name": "Your e-mail address",
+     "title": "Étape 2 sur 4 – H&M - Vivaldi"
+    },
+    {
+     "id": "t0032",
+     "want": [
+      "email",
+      2
+     ],
+     "got": [
+      "address",
+      0,
+      "head",
+      "head"
+     ],
+     "name": "Adresse e-mail du bénéficiaire",
+     "title": "Service client | Société Générale — Mozilla Firefox"
+    },
+    {
+     "id": "t0035",
+     "want": [
+      "email",
+      3
+     ],
+     "got": [
+      "email",
+      0,
+      "head",
+      "head"
+     ],
+     "name": "email adresse *",
+     "title": "Connexion à votre espace – Gamecash — Mozilla Firefox"
+    },
+    {
+     "id": "t0037",
+     "want": [
+      "email",
+      -1
+     ],
+     "got": [
+      "address",
+      -1,
+      "head",
+      "none"
+     ],
+     "name": "prenomdomaine.fr",
+     "title": "Get started | Oxybul et 3 pages de plus - Profil 1 - Microsoft Edge"
+    },
+    {
+     "id": "t0038",
+     "want": [
+      "email",
+      1
+     ],
+     "got": [
+      "url",
+      0,
+      "head",
+      "head"
+     ],
+     "name": "👉 Adresse e-mail pour la confirmation",
+     "title": "Accès client | Lime et 3 pages de plus - Profil 1 - Microsoft Edge"
+    },
+    {
+     "id": "t0045",
+     "want": [
+      "email",
+      -1
+     ],
+     "got": [
+      "url",
+      0,
+      "head",
+      "head"
+     ],
+     "name": "📧 Send invoice to (email) :",
+     "title": "Lidl : Log in to continue – Navigation privée de Mozilla Firefox"
+    },
+    {
+     "id": "t0050",
+     "want": [
+      "email",
+      3
+     ],
+     "got": [
+      "url",
+      -1,
+      "head",
+      "head"
+     ],
+     "name": "",
+     "title": "Validation du panier - Patreon - Google Chrome"
+    },
+    {
+     "id": "t0051",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "url",
+      -1,
+      "head",
+      "head"
+     ],
+     "name": "Email perso (optional)",
+     "title": "LDLC : Écrivez-nous - Opera"
+    },
+    {
+     "id": "t0058",
+     "want": [
+      "email",
+      2
+     ],
+     "got": [
+      "username",
+      -1,
+      "head",
+      "head"
+     ],
+     "name": "Adresse mail du parent",
+     "title": "Picard : Connexion à votre espace"
+    },
+    {
+     "id": "t0060",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "address",
+      0,
+      "head",
+      "head"
+     ],
+     "name": "Votre adresse courriel",
+     "title": "Log in to continue – Société Générale"
+    },
+    {
+     "id": "t0063",
+     "want": [
+      "email",
+      1
+     ],
+     "got": [
+      "address",
+      0,
+      "head",
+      "head"
+     ],
+     "name": "Adresse e-mail du bénéficiaire (optional)",
+     "title": "Showroomprivé : Ouvrir un compte - Vivaldi"
+    },
+    {
+     "id": "t0076",
+     "want": [
+      "email",
+      1
+     ],
+     "got": [
+      "name",
+      -1,
+      "head",
+      "head"
+     ],
+     "name": "prenom@dmoaine.fr",
+     "title": "Se connecter à mon compte | Miro - Google Chrome"
+    },
+    {
+     "id": "t0077",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "number",
+      -1,
+      "head",
+      "head"
+     ],
+     "name": "Courriel (requis)",
+     "title": "Get started - Too Good To Go"
+    },
+    {
+     "id": "t0081",
+     "want": [
+      "email",
+      2
+     ],
+     "got": [
+      "username",
+      3,
+      "head",
+      "head"
+     ],
+     "name": "Emial adress",
+     "title": "Créer mon espace | Picard"
+    },
+    {
+     "id": "t0084",
+     "want": [
+      "email",
+      0
+     ],
+     "got": [
+      "phone",
+      -1,
+      "head",
+      "head"
+     ],
+     "name": "",
+     "title": "Demande de devis | Qonto"
+    }
+   ]
+  }
+ ],
+ "heads_direct": {
+  "laya": {
+   "field_kind": {
+    "n": 1690,
+    "acc": 0.634,
+    "coverage_at_threshold": 0.567,
+    "acc_when_confident": 0.808,
+    "ece_certainty": 0.155,
+    "p50_ms": 110.6,
+    "p95_ms": 147.4,
+    "per_class": {
+     "address": [
+      0.561,
+      155
+     ],
+     "chat_message": [
+      0.693,
+      140
+     ],
+     "code": [
+      0.61,
+      118
+     ],
+     "date": [
+      0.872,
+      125
+     ],
+     "email": [
+      0.734,
+      158
+     ],
+     "name": [
+      0.658,
+      120
+     ],
+     "number": [
+      0.712,
+      125
+     ],
+     "other": [
+      0.083,
+      168
+     ],
+     "phone": [
+      0.808,
+      125
+     ],
+     "search": [
+      0.727,
+      231
+     ],
+     "url": [
+      0.755,
+      110
+     ],
+     "username": [
+      0.496,
+      115
+     ]
+    }
+   },
+   "text_kind": {
+    "n": 1647,
+    "acc": 0.837,
+    "coverage_at_threshold": 0.932,
+    "acc_when_confident": 0.861,
+    "ece_certainty": 0.115,
+    "p50_ms": 117.2,
+    "p95_ms": 145.4,
+    "per_class": {
+     "address": [
+      0.831,
+      189
+     ],
+     "code": [
+      0.402,
+      92
+     ],
+     "date": [
+      0.643,
+      98
+     ],
+     "email": [
+      0.928,
+      125
+     ],
+     "name": [
+      0.42,
+      100
+     ],
+     "none": [
+      0.889,
+      434
+     ],
+     "number": [
+      0.99,
+      96
+     ],
+     "phone": [
+      0.962,
+      106
+     ],
+     "text": [
+      0.978,
+      184
+     ],
+     "url": [
+      0.915,
+      130
+     ],
+     "username": [
+      0.882,
+      93
+     ]
+    }
+   }
+  }
+ },
+ "load": {
+  "laya": {
+   "load_s": 5.52,
+   "ram_before_mb": [
+    0,
+    0
+   ],
+   "ram_after_mb": [
+    0,
+    0
+   ],
+   "backend": "cpu"
+  }
+ }
+}

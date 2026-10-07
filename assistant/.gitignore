@@ -8,3 +8,5 @@ __pycache__/
 *.pyc
 *.part
 *.log
+# eval_v2 : ecrans synthetiques regenerables (data/gen_screens.py --split eval), 61 Mo
+data/eval_v2/vision/

@@ -80,12 +80,20 @@ class SiglipEyes:
     """Encodeur d'images SigLIP en ONNX. Les phrases des classes sont deja encodees (models/siglip_prompts.npz,
     fait par export_onnx.py) : le modele de texte n'est pas livre. Sans models/, retombe sur siglip/ (dev)."""
 
-    def __init__(self, gpu: bool = False, threads: int = 2, precision: str = "") -> None:
+    def __init__(self, gpu: bool = False, threads: int = 2, precision: str = "", use_head: bool = False) -> None:
         import json
 
         from .laya_onnx import MODELS, find, session
 
         t0 = time.perf_counter()
+        # tete d'activite entrainee (train_gemma_heads.py --vision --encoder siglip), seulement si demandee
+        self.activity_head = self.activity_head_fg = None
+        if use_head and (MODELS / "siglip_vision_heads.npz").exists():
+            from .np_heads import load_heads
+
+            hs = load_heads(MODELS / "siglip_vision_heads.npz")
+            self.activity_head = hs.get("activity:full")
+            self.activity_head_fg = hs.get("activity:full+fg")
         self._dev = not (MODELS / "siglip_prompts.npz").exists()
         if self._dev:
             path = SIGLIP_DIR / "onnx" / "vision_model_fp16.onnx"
@@ -359,9 +367,30 @@ class VisionWatcher(threading.Thread):
             motion_rect = list(rect)
             if share < 0.97:
                 crops.append(img.crop((rect[0], rect[1], rect[0] + rect[2], rect[1] + rect[3])))
+        motion_idx = 1 if len(crops) > 1 else 0
+        # strategie « plein ecran + fenetre au premier plan » (eval_v2 : meilleure precision par ms), seulement
+        # avec une tete entrainee pour elle et une fenetre qui ne couvre pas deja l'ecran
+        head = getattr(eyes, "activity_head", None)
+        head_fg = getattr(eyes, "activity_head_fg", None)
+        fg_idx = None
+        if head_fg is not None and not fg.get("own"):
+            fr = fg.get("rect") or [0, 0, 0, 0]
+            fx0, fy0 = max(0, fr[0] - mon["left"]), max(0, fr[1] - mon["top"])
+            fx1, fy1 = min(sw, fr[0] - mon["left"] + fr[2]), min(sh, fr[1] - mon["top"] + fr[3])
+            if fx1 - fx0 > 64 and fy1 - fy0 > 64 and (fx1 - fx0) * (fy1 - fy0) < 0.9 * sw * sh:
+                fg_idx = len(crops)
+                crops.append(img.crop((fx0, fy0, fx1, fy1)))
         emb = eyes.embed_images(crops)
         self.stats["encode_ms"] = (time.perf_counter() - t0) * 1000
-        probs = eyes.class_probs(emb[0], ACTIVITIES, temperature=ACT_TEMPERATURE)
+        if head_fg is not None:
+            x = emb[0] if fg_idx is None else emb[0] + emb[fg_idx]
+            hp = head_fg.probs(x / np.linalg.norm(x))
+            probs = {k: float(hp[head_fg.labels.index(k)]) for k in ACTIVITIES}
+        elif head is not None:  # tete entrainee sur des ecrans (eval_v2 : bien meilleure que le zero-shot)
+            hp = head.probs(emb[0])
+            probs = {k: float(hp[head.labels.index(k)]) for k in ACTIVITIES}
+        else:
+            probs = eyes.class_probs(emb[0], ACTIVITIES, temperature=ACT_TEMPERATURE)
         # a priori de l'appli au premier plan (30 %), sauf si c'est le jeu lui-meme
         proc = str(fg.get("process", "")).lower()
         if proc and not fg.get("own"):
@@ -380,7 +409,7 @@ class VisionWatcher(threading.Thread):
             probs = {k: v / z for k, v in probs.items()}
         video_like = None
         if rect is not None:
-            e = emb[1] if len(emb) > 1 else emb[0]
+            e = emb[motion_idx]
             pv = eyes.class_probs(e, {"video": VIDEO_PROMPTS, "ui": UI_PROMPTS})
             video_like = pv["video"]
             if video_like < 0.5:

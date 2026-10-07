@@ -20,6 +20,9 @@ API (127.0.0.1 uniquement ; en-tete X-Pompom-Token obligatoire sauf /health) :
   POST /shutdown
 
 Decisions : stuntd (encodeur Laya fige + tetes de classification entrainees hors ligne), aucun LLM.
+Encodeur au choix (meme API) : ASSIST_BACKEND=laya (defaut : Laya + SigLIP) | gemma2 (EmbeddingGemma 2 pour le
+texte ET la vision, models/gemma2/) | gemma2-text (EmbeddingGemma 2 pour le texte, SigLIP pour la vision) ;
+ou --backend / --vision-backend. Voir docs/eval_embeddinggemma2.md.
 Hors ligne : tout est lu dans models/ (ONNX). PyTorch n est PAS necessaire (seulement dans dev/ pour entrainer).
 
 Vie privee : aucune connexion sortante, aucun fichier ecrit (sauf --log, qui ne contient jamais de texte
@@ -50,6 +53,7 @@ from pompom_assist.decider import Decider  # noqa: E402
 from pompom_assist.heads import OnnxHeads, env_threads  # noqa: E402
 
 MAX_BODY = 256 * 1024
+MODEL_NAMES = {"laya": "stuntd-heads/laya-multilingual (onnx)", "gemma2": "heads/embeddinggemma-2 (onnx)"}
 MAX_CANDIDATES = 8
 MAX_CANDIDATE_CHARS = 4000
 
@@ -87,7 +91,12 @@ class State:
         # et moins precis (fp16) pour cet encodeur ; la carte graphique est gardee pour la vision.
         t0 = time.time()
         try:
-            heads = OnnxHeads(gpu=False, threads=self.args.threads)
+            if self.args.backend == "gemma2":
+                from pompom_assist.gemma_onnx import GemmaHeads
+
+                heads = GemmaHeads(gpu=False, threads=self.args.threads)
+            else:
+                heads = OnnxHeads(gpu=False, threads=self.args.threads)
             heads.warm()
         except Exception as exc:  # noqa: BLE001
             self.log(f"heads load failed: {exc!r}")
@@ -113,6 +122,10 @@ class State:
                     and time.time() - self.last_use > self.args.idle_unload):
                 self.decider.heads = None
                 self.heads_state = "unloaded"
+                if self.args.backend == "gemma2":
+                    from pompom_assist.gemma_onnx import release_shared
+
+                    release_shared(False)  # (la vision garde son propre lien si elle tourne sur CPU)
                 import gc
 
                 gc.collect()
@@ -161,7 +174,12 @@ class State:
 
                 own = {os.getpid()} | ({self.args.parent_pid} if self.args.parent_pid else set())
                 gpu, threads = self.args.gpu, self.args.vision_threads
-                self.vision = VisionWatcher(lambda: SiglipEyes(gpu=gpu, threads=threads),
+                if self.args.vision_backend == "gemma2":
+                    from pompom_assist.gemma_onnx import GemmaEyes as eyes_cls
+                else:
+                    eyes_cls = SiglipEyes
+                vh = self.args.vision_head
+                self.vision = VisionWatcher(lambda: eyes_cls(gpu=gpu, threads=threads, use_head=vh),
                                             motion_interval=self.args.motion_interval,
                                             classify_interval=self.args.vision_interval, own_pids=own)
                 self.vision.start()
@@ -237,7 +255,8 @@ def make_handler(state: State, token: str, port: int):
                 if not self._guard(need_token=False):
                     return
                 self._send(200, {"ok": True, "heads": state.heads_state, "backend": state.backend,
-                                 "model": "stuntd-heads/laya-multilingual (onnx)", "mode": state.args.mode, "focus": state.watcher is not None,
+                                 "model": MODEL_NAMES.get(state.args.backend, state.args.backend), "mode": state.args.mode,
+                                 "vision_model": state.args.vision_backend, "focus": state.watcher is not None,
                                  "uptime": round(time.time() - state.started, 2)})
                 return
             if not self._guard():
@@ -364,6 +383,24 @@ def main() -> None:
     ap.add_argument("--vision-threads", type=int, default=2)
     ap.add_argument("--focus-interval", type=float, default=0.25)
     ap.add_argument("--log", default="")
+    env_b = os.environ.get("ASSIST_BACKEND", "auto").strip().lower() or "auto"
+    if env_b == "auto":
+        # meilleur choix mesure (docs/eval_embeddinggemma2.md) : EmbeddingGemma 2 pour le texte + SigLIP avec sa tete
+        # entrainee pour l'ecran, si leurs fichiers sont installes ; sinon le duo historique Laya + SigLIP.
+        mdir = Path(__file__).resolve().parent / "models"
+        has_g2 = (mdir / "gemma2" / "backbone.w8.onnx").exists() and (mdir / "gemma2" / "text_heads.npz").exists()
+        env_b = "gemma2-text" if has_g2 else "laya"
+        if not has_g2 and (mdir / "siglip_vision_heads.npz").exists():
+            env_b = "laya+head"
+    ap.add_argument("--backend", default="gemma2" if env_b.startswith("gemma2") else "laya", choices=["laya", "gemma2"],
+                    help="encodeur du texte (defaut : variable ASSIST_BACKEND, sinon laya)")
+    ap.add_argument("--vision-backend", default="gemma2" if env_b == "gemma2" else "siglip", choices=["siglip", "gemma2"],
+                    help="encodeur de la vision (ASSIST_BACKEND=gemma2 -> gemma2 ; gemma2-text ou laya -> siglip)")
+    ap.add_argument("--vision-head", dest="vision_head", action="store_true",
+                    default=env_b.startswith("gemma2") or env_b == "laya+head",
+                    help="activite par la tete entrainee (models/gemma2/vision_heads.npz ou models/siglip_vision_heads.npz) "
+                         "au lieu du zero-shot (defaut : oui avec ASSIST_BACKEND=gemma2*, non sinon)")
+    ap.add_argument("--no-vision-head", dest="vision_head", action="store_false")
     args = ap.parse_args()
     if not args.token:
         print("--token requis", file=sys.stderr)
@@ -380,7 +417,7 @@ def main() -> None:
     threading.Thread(target=state._idle_loop, name="idle", daemon=True).start()
     if args.vision:
         state.set_vision(True)
-    state.log(f"listening 127.0.0.1:{args.port} base={args.base} mode={args.mode} gpu={args.gpu}")
+    state.log(f"listening 127.0.0.1:{args.port} backend={args.backend}/{args.vision_backend} mode={args.mode} gpu={args.gpu}")
     try:
         httpd.serve_forever(poll_interval=0.5)
     except KeyboardInterrupt:

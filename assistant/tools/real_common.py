@@ -37,8 +37,11 @@ def low_priority() -> None:
     """Le PC sert aussi a jouer : on passe en priorite basse (Windows) / nice 10 (ailleurs)."""
     try:
         if os.name == "nt":
-            BELOW_NORMAL = 0x00004000
-            ctypes.windll.kernel32.SetPriorityClass(ctypes.windll.kernel32.GetCurrentProcess(), BELOW_NORMAL)
+            # (meme correctif que pompom_assist/lowprio.py : sans restype/argtypes, ctypes tronque la
+            #  pseudo-poignee -1 et SetPriorityClass echoue sans rien dire)
+            from pompom_assist.lowprio import set_low_priority
+
+            set_low_priority()
         else:
             os.nice(10)
     except Exception:  # noqa: BLE001

@@ -56,6 +56,14 @@ Sites de dÃ©cision :
 Pas de site `noul` Â« faut-il suggÃ©rer ? Â» : `text_kind` sait dÃ©jÃ  rÃ©pondre `none`, et la probabilitÃ©
 renvoyÃ©e sert de seuil cÃ´tÃ© Godot (`min_confidence`).
 
+## Encodeur au choix : EmbeddingGemma 2 (évaluation du 7 octobre 2026)
+
+`docs/eval_embeddinggemma2.md` compare la pile actuelle à EmbeddingGemma 2 sur de nouveaux jeux de test plus
+réalistes (`data/eval_v2/`, `tests/eval_v2.py`). Recommandation : le mode hybride **`ASSIST_BACKEND=gemma2-text`**
+(texte EmbeddingGemma 2, vision SigLIP avec tête entraînée). Le défaut (`laya`) ne change pas, et l'API HTTP
+reste la même. Les champs secrets non marqués (codes SMS, PIN, carte, clés…) ne reçoivent plus jamais de
+suggestion (`rules.is_secret_field`).
+
 ## Installation
 
 ```powershell

@@ -1,0 +1,22 @@
+{
+ "laya/cpu": {
+  "p50_ms": 108.0,
+  "p95_ms": 121.6,
+  "mean_ms": 108.6
+ },
+ "laya/directml": {
+  "p50_ms": 148.9,
+  "p95_ms": 325.1,
+  "mean_ms": 176.6
+ },
+ "gemma2/cpu": {
+  "p50_ms": 135.6,
+  "p95_ms": 166.3,
+  "mean_ms": 136.9
+ },
+ "gemma2/directml": {
+  "p50_ms": 404.7,
+  "p95_ms": 438.8,
+  "mean_ms": 407.1
+ }
+}

@@ -3,6 +3,14 @@
 Toutes les versions de Pompom. Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/)
 et les numéros suivent [SemVer](https://semver.org/lang/fr/).
 
+## [Non publié] - assistant local
+
+### Assistant (dossier assistant/, installation séparée)
+- **Sécurité** : il ne propose plus jamais de coller un texte dans un champ secret (code SMS, CVC, code à 6 chiffres…). L'ancien moteur le faisait dans 19 cas sur 160 du nouveau banc d'essai.
+- **EmbeddingGemma 2** (Google, Apache-2.0) pour comprendre les champs, choisi automatiquement s'il est installé : type de champ juste 86 % (Laya : 78 %), aucun secret proposé, mémoire 347 Mo (Laya : 810 Mo). Sinon, Laya comme avant.
+- **Écran** : SigLIP garde l'image mais avec une tête entraînée et un recadrage sur la fenêtre au premier plan : activité juste 90 % (avant : 54 %).
+- Nouveau banc d'essai (1 850 champs inédits, 360 écrans synthétiques), rapport complet dans `assistant/docs/eval_embeddinggemma2.md`.
+
 ## [0.6.3-beta] - 2026-10-07
 
 ### Partage anonyme en ligne

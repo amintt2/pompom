@@ -1,0 +1,812 @@
+{
+ "n": 360,
+ "source": "C:\\Users\\amin2\\Documents\\Games\\Pompom\\assistant\\data\\eval_v2\\vision",
+ "backends": {
+  "gemma2": {
+   "activity_image_only": {
+    "full / zero-shot": {
+     "acc": 0.597,
+     "per_class": {
+      "*held_out_style": [
+       0.585,
+       65
+      ],
+      "*video_static": [
+       0.333,
+       15
+      ],
+      "browse": [
+       0.145,
+       55
+      ],
+      "chat": [
+       0.067,
+       45
+      ],
+      "game": [
+       1.0,
+       54
+      ],
+      "other": [
+       0.742,
+       31
+      ],
+      "video": [
+       0.479,
+       73
+      ],
+      "work_code": [
+       0.967,
+       61
+      ],
+      "work_docs": [
+       0.805,
+       41
+      ]
+     }
+    },
+    "full / tete": {
+     "acc": 0.897,
+     "per_class": {
+      "*held_out_style": [
+       0.831,
+       65
+      ],
+      "*video_static": [
+       0.733,
+       15
+      ],
+      "browse": [
+       0.855,
+       55
+      ],
+      "chat": [
+       1.0,
+       45
+      ],
+      "game": [
+       0.981,
+       54
+      ],
+      "other": [
+       0.806,
+       31
+      ],
+      "video": [
+       0.836,
+       73
+      ],
+      "work_code": [
+       0.902,
+       61
+      ],
+      "work_docs": [
+       0.902,
+       41
+      ]
+     }
+    },
+    "full+fg / zero-shot": {
+     "acc": 0.625,
+     "per_class": {
+      "*held_out_style": [
+       0.631,
+       65
+      ],
+      "*video_static": [
+       0.4,
+       15
+      ],
+      "browse": [
+       0.2,
+       55
+      ],
+      "chat": [
+       0.089,
+       45
+      ],
+      "game": [
+       1.0,
+       54
+      ],
+      "other": [
+       0.677,
+       31
+      ],
+      "video": [
+       0.534,
+       73
+      ],
+      "work_code": [
+       1.0,
+       61
+      ],
+      "work_docs": [
+       0.854,
+       41
+      ]
+     }
+    },
+    "full+fg / tete": {
+     "acc": 0.947,
+     "per_class": {
+      "*held_out_style": [
+       0.892,
+       65
+      ],
+      "*video_static": [
+       0.8,
+       15
+      ],
+      "browse": [
+       0.909,
+       55
+      ],
+      "chat": [
+       0.978,
+       45
+      ],
+      "game": [
+       0.981,
+       54
+      ],
+      "other": [
+       0.903,
+       31
+      ],
+      "video": [
+       0.89,
+       73
+      ],
+      "work_code": [
+       1.0,
+       61
+      ],
+      "work_docs": [
+       0.976,
+       41
+      ]
+     }
+    },
+    "grid2+full / zero-shot": {
+     "acc": 0.625,
+     "per_class": {
+      "*held_out_style": [
+       0.569,
+       65
+      ],
+      "*video_static": [
+       0.467,
+       15
+      ],
+      "browse": [
+       0.109,
+       55
+      ],
+      "chat": [
+       0.111,
+       45
+      ],
+      "game": [
+       1.0,
+       54
+      ],
+      "other": [
+       0.71,
+       31
+      ],
+      "video": [
+       0.589,
+       73
+      ],
+      "work_code": [
+       0.984,
+       61
+      ],
+      "work_docs": [
+       0.854,
+       41
+      ]
+     }
+    },
+    "grid2+full / tete": {
+     "acc": 0.883,
+     "per_class": {
+      "*held_out_style": [
+       0.662,
+       65
+      ],
+      "*video_static": [
+       0.8,
+       15
+      ],
+      "browse": [
+       0.673,
+       55
+      ],
+      "chat": [
+       0.956,
+       45
+      ],
+      "game": [
+       0.944,
+       54
+      ],
+      "other": [
+       0.871,
+       31
+      ],
+      "video": [
+       0.849,
+       73
+      ],
+      "work_code": [
+       0.967,
+       61
+      ],
+      "work_docs": [
+       0.951,
+       41
+      ]
+     }
+    },
+    "grid3+full / zero-shot": {
+     "acc": 0.614,
+     "per_class": {
+      "*held_out_style": [
+       0.585,
+       65
+      ],
+      "*video_static": [
+       0.533,
+       15
+      ],
+      "browse": [
+       0.091,
+       55
+      ],
+      "chat": [
+       0.044,
+       45
+      ],
+      "game": [
+       1.0,
+       54
+      ],
+      "other": [
+       0.742,
+       31
+      ],
+      "video": [
+       0.616,
+       73
+      ],
+      "work_code": [
+       0.967,
+       61
+      ],
+      "work_docs": [
+       0.805,
+       41
+      ]
+     }
+    },
+    "grid3+full / tete": {
+     "acc": 0.903,
+     "per_class": {
+      "*held_out_style": [
+       0.754,
+       65
+      ],
+      "*video_static": [
+       0.733,
+       15
+      ],
+      "browse": [
+       0.836,
+       55
+      ],
+      "chat": [
+       0.933,
+       45
+      ],
+      "game": [
+       0.981,
+       54
+      ],
+      "other": [
+       0.71,
+       31
+      ],
+      "video": [
+       0.877,
+       73
+      ],
+      "work_code": [
+       0.984,
+       61
+      ],
+      "work_docs": [
+       0.927,
+       41
+      ]
+     }
+    },
+    "grid3+full+fg / zero-shot": {
+     "acc": 0.619,
+     "per_class": {
+      "*held_out_style": [
+       0.585,
+       65
+      ],
+      "*video_static": [
+       0.533,
+       15
+      ],
+      "browse": [
+       0.091,
+       55
+      ],
+      "chat": [
+       0.044,
+       45
+      ],
+      "game": [
+       1.0,
+       54
+      ],
+      "other": [
+       0.742,
+       31
+      ],
+      "video": [
+       0.616,
+       73
+      ],
+      "work_code": [
+       0.984,
+       61
+      ],
+      "work_docs": [
+       0.829,
+       41
+      ]
+     }
+    },
+    "grid3+full+fg / tete": {
+     "acc": 0.911,
+     "per_class": {
+      "*held_out_style": [
+       0.769,
+       65
+      ],
+      "*video_static": [
+       0.667,
+       15
+      ],
+      "browse": [
+       0.891,
+       55
+      ],
+      "chat": [
+       0.956,
+       45
+      ],
+      "game": [
+       0.981,
+       54
+      ],
+      "other": [
+       0.71,
+       31
+      ],
+      "video": [
+       0.849,
+       73
+      ],
+      "work_code": [
+       0.984,
+       61
+      ],
+      "work_docs": [
+       0.951,
+       41
+      ]
+     }
+    }
+   },
+   "activity_pipeline": {
+    "full / zero-shot": {
+     "acc": 0.628,
+     "per_class": {
+      "*held_out_style": [
+       0.554,
+       65
+      ],
+      "*video_static": [
+       0.467,
+       15
+      ],
+      "browse": [
+       0.364,
+       55
+      ],
+      "chat": [
+       0.089,
+       45
+      ],
+      "game": [
+       0.759,
+       54
+      ],
+      "other": [
+       0.806,
+       31
+      ],
+      "video": [
+       0.712,
+       73
+      ],
+      "work_code": [
+       0.852,
+       61
+      ],
+      "work_docs": [
+       0.78,
+       41
+      ]
+     }
+    },
+    "full / tete": {
+     "acc": 0.856,
+     "per_class": {
+      "*held_out_style": [
+       0.692,
+       65
+      ],
+      "*video_static": [
+       0.667,
+       15
+      ],
+      "browse": [
+       0.873,
+       55
+      ],
+      "chat": [
+       0.911,
+       45
+      ],
+      "game": [
+       0.944,
+       54
+      ],
+      "other": [
+       0.774,
+       31
+      ],
+      "video": [
+       0.836,
+       73
+      ],
+      "work_code": [
+       0.836,
+       61
+      ],
+      "work_docs": [
+       0.78,
+       41
+      ]
+     }
+    },
+    "grid2+full / zero-shot": {
+     "acc": 0.675,
+     "per_class": {
+      "*held_out_style": [
+       0.662,
+       65
+      ],
+      "*video_static": [
+       0.533,
+       15
+      ],
+      "browse": [
+       0.564,
+       55
+      ],
+      "chat": [
+       0.2,
+       45
+      ],
+      "game": [
+       0.759,
+       54
+      ],
+      "other": [
+       0.774,
+       31
+      ],
+      "video": [
+       0.74,
+       73
+      ],
+      "work_code": [
+       0.869,
+       61
+      ],
+      "work_docs": [
+       0.756,
+       41
+      ]
+     }
+    },
+    "grid2+full / tete": {
+     "acc": 0.861,
+     "per_class": {
+      "*held_out_style": [
+       0.662,
+       65
+      ],
+      "*video_static": [
+       0.8,
+       15
+      ],
+      "browse": [
+       0.764,
+       55
+      ],
+      "chat": [
+       0.889,
+       45
+      ],
+      "game": [
+       0.944,
+       54
+      ],
+      "other": [
+       0.871,
+       31
+      ],
+      "video": [
+       0.904,
+       73
+      ],
+      "work_code": [
+       0.852,
+       61
+      ],
+      "work_docs": [
+       0.78,
+       41
+      ]
+     }
+    }
+   },
+   "video_location": {
+    "motion / zero-shot": {
+     "recall_iou50": 0.151,
+     "precision": 0.151,
+     "f1": 0.151,
+     "false_alarm_rate_no_video": 0.142,
+     "mean_iou_hits": 0.736,
+     "recall_by_motion": {
+      "moving": [
+       0.226,
+       62
+      ],
+      "static": [
+       0.0,
+       18
+      ],
+      "talking": [
+       0.0,
+       13
+      ]
+     }
+    },
+    "motion+confirm / zero-shot": {
+     "recall_iou50": 0.118,
+     "precision": 0.379,
+     "f1": 0.18,
+     "false_alarm_rate_no_video": 0.004,
+     "mean_iou_hits": 0.711,
+     "recall_by_motion": {
+      "moving": [
+       0.177,
+       62
+      ],
+      "static": [
+       0.0,
+       18
+      ],
+      "talking": [
+       0.0,
+       13
+      ]
+     }
+    },
+    "tiles / zero-shot": {
+     "recall_iou50": 0.194,
+     "precision": 0.098,
+     "f1": 0.13,
+     "false_alarm_rate_no_video": 0.408,
+     "mean_iou_hits": 0.761,
+     "recall_by_motion": {
+      "moving": [
+       0.258,
+       62
+      ],
+      "static": [
+       0.056,
+       18
+      ],
+      "talking": [
+       0.077,
+       13
+      ]
+     }
+    },
+    "tiles / tete": {
+     "recall_iou50": 0.462,
+     "precision": 0.473,
+     "f1": 0.467,
+     "false_alarm_rate_no_video": 0.026,
+     "mean_iou_hits": 0.781,
+     "recall_by_motion": {
+      "moving": [
+       0.468,
+       62
+      ],
+      "static": [
+       0.222,
+       18
+      ],
+      "talking": [
+       0.769,
+       13
+      ]
+     }
+    },
+    "motion+tiles / zero-shot": {
+     "recall_iou50": 0.054,
+     "precision": 0.263,
+     "f1": 0.089,
+     "false_alarm_rate_no_video": 0.007,
+     "mean_iou_hits": 0.712,
+     "recall_by_motion": {
+      "moving": [
+       0.081,
+       62
+      ],
+      "static": [
+       0.0,
+       18
+      ],
+      "talking": [
+       0.0,
+       13
+      ]
+     }
+    },
+    "motion+tiles / tete": {
+     "recall_iou50": 0.247,
+     "precision": 0.307,
+     "f1": 0.274,
+     "false_alarm_rate_no_video": 0.019,
+     "mean_iou_hits": 0.747,
+     "recall_by_motion": {
+      "moving": [
+       0.323,
+       62
+      ],
+      "static": [
+       0.167,
+       18
+      ],
+      "talking": [
+       0.0,
+       13
+      ]
+     }
+    },
+    "motion-any / zero-shot": {
+     "recall_iou50": 0.72,
+     "precision": 0.296,
+     "f1": 0.42,
+     "false_alarm_rate_no_video": 0.547,
+     "mean_iou_hits": 0.846,
+     "recall_by_motion": {
+      "moving": [
+       0.871,
+       62
+      ],
+      "static": [
+       0.0,
+       18
+      ],
+      "talking": [
+       1.0,
+       13
+      ]
+     }
+    },
+    "motion-any+tiles / zero-shot": {
+     "recall_iou50": 0.183,
+     "precision": 0.447,
+     "f1": 0.26,
+     "false_alarm_rate_no_video": 0.067,
+     "mean_iou_hits": 0.885,
+     "recall_by_motion": {
+      "moving": [
+       0.258,
+       62
+      ],
+      "static": [
+       0.0,
+       18
+      ],
+      "talking": [
+       0.077,
+       13
+      ]
+     }
+    },
+    "motion-any+tiles / tete": {
+     "recall_iou50": 0.462,
+     "precision": 0.741,
+     "f1": 0.57,
+     "false_alarm_rate_no_video": 0.011,
+     "mean_iou_hits": 0.849,
+     "recall_by_motion": {
+      "moving": [
+       0.5,
+       62
+      ],
+      "static": [
+       0.111,
+       18
+      ],
+      "talking": [
+       0.769,
+       13
+      ]
+     }
+    }
+   },
+   "timing_cpu": {
+    "full": {
+     "p50_ms": 1039.8,
+     "p95_ms": 1053.9
+    },
+    "full+fg": {
+     "p50_ms": 1063.8,
+     "p95_ms": 2457.5
+    },
+    "grid2+full": {
+     "p50_ms": 5216.4,
+     "p95_ms": 5368.3
+    },
+    "grid3+full": {
+     "p50_ms": 10431.0,
+     "p95_ms": 10563.5
+    },
+    "grid3+full+fg": {
+     "p50_ms": 10524.0,
+     "p95_ms": 11771.6
+    },
+    "motion+confirm": {
+     "p50_ms": 1039.8,
+     "p95_ms": 2398.7
+    },
+    "motion+tiles": {
+     "p50_ms": 10561.4,
+     "p95_ms": 10627.1
+    },
+    "tiles (sans plein ecran)": {
+     "p50_ms": 9362.9,
+     "p95_ms": 9722.5
+    }
+   },
+   "backend": "cpu"
+  }
+ }
+}

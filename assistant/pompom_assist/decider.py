@@ -41,10 +41,13 @@ class Suggestion:
 class Decider:
     """Interface stable : suggest(field, candidates) -> Suggestion ; field_kind(field) ; choose(...)."""
 
-    def __init__(self, heads=None, kind_threshold: float = 0.85, mode: str = "hybrid") -> None:
+    def __init__(self, heads=None, kind_threshold: float = 0.85, mode: str = "hybrid",
+                 secret_guard: bool = True, semantic_secret: bool = True) -> None:
         self.heads = heads
         self.kind_threshold = kind_threshold
         self.mode = mode
+        self.secret_guard = secret_guard  # False = comportement d'avant eval_v2 (mesure de reference)
+        self.semantic_secret = semantic_secret  # + garde de l'encodeur (tete « secret ») si elle existe
         self.on_use = None  # rappel du service : « j'aurais besoin du modele » (chargement a la demande)
 
     def ready(self, site: str = SITE_FIELD) -> bool:
@@ -124,9 +127,22 @@ class Decider:
         if not field or field.get("skip") or field.get("is_password"):
             return Suggestion("other", -1, 1.0, "", "rules", "none", [], 0.0,
                               skip=str(field.get("skip", "password") if field else "no_field"))
+        if self.secret_guard and rules.is_secret_field(field):
+            # champ secret non marque comme mot de passe (code PIN, code SMS, carte, cle d'API...) : rien
+            return Suggestion("other", -1, 1.0, "", "rules", "none", [], 0.0, skip="secret")
         types = [rules.content_type(c) for c in candidates]
         kind, kconf, ksrc, kms = self.field_kind(field)
         idx, pconf, psrc, pms = self.best_candidate(field, kind, candidates, types)
+        # seulement si le modele a deja lu ce champ (regles pas sures) : son vecteur est en cache -> ~0 ms de plus ;
+        # un champ que les regles reconnaissent avec certitude (« Adresse e-mail »...) n'est pas un secret
+        if (idx >= 0 and ksrc != "rules" and self.secret_guard and self.semantic_secret and self.heads is not None
+                and hasattr(self.heads, "is_secret")):
+            # garde semantique de l'encodeur (si sa tete existe), seulement quand on allait proposer un texte
+            try:
+                if self.heads.is_secret(field):
+                    return Suggestion("other", -1, 1.0, "", "head", "none", [], 0.0, skip="secret")
+            except Exception:
+                pass
         conf = kconf * pconf if idx >= 0 else kconf
         label = rules.label_fr(kind, candidates[idx]) if idx >= 0 else ""
         return Suggestion(kind, idx, round(conf, 3), label, ksrc, psrc, types,

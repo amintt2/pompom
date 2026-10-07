@@ -1,0 +1,51 @@
+[
+ {
+  "case": "idle",
+  "gpu": false,
+  "working_set_mb": 20,
+  "private_mb": 13,
+  "s": 0.0
+ },
+ {
+  "case": "laya_text",
+  "gpu": false,
+  "working_set_mb": 810,
+  "private_mb": 889,
+  "s": 6.4
+ },
+ {
+  "case": "gemma2_text",
+  "gpu": false,
+  "working_set_mb": 347,
+  "private_mb": 458,
+  "s": 10.1
+ },
+ {
+  "case": "siglip_vision",
+  "gpu": false,
+  "working_set_mb": 261,
+  "private_mb": 340,
+  "s": 2.3
+ },
+ {
+  "case": "siglip_vision",
+  "gpu": true,
+  "working_set_mb": 173,
+  "private_mb": 426,
+  "s": 1.3
+ },
+ {
+  "case": "gemma2_vision",
+  "gpu": false,
+  "working_set_mb": 1016,
+  "private_mb": 1096,
+  "s": 21.5
+ },
+ {
+  "case": "gemma2_vision",
+  "gpu": true,
+  "working_set_mb": 400,
+  "private_mb": 1365,
+  "s": 13.3
+ }
+]

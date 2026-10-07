@@ -151,6 +151,39 @@ def field_text(field: dict) -> str:
     return fold(" | ".join(str(p) for p in parts if p))
 
 
+# --------------------------------------------------------------------------- champs secrets
+# Champs qui ne doivent JAMAIS recevoir de suggestion, meme quand l'appli ne les marque pas comme mot de
+# passe (controles dessines a la main, lanceurs, Electron...) : mots de passe, codes PIN / a usage unique,
+# carte bancaire, cles d'API, phrases de recuperation. Liste ecrite AVANT le jeu eval_v2 (pas reglee dessus).
+SECRET_WORDS = (
+    "mot de passe", "mdp", "password", "passwd", "passcode", "passphrase", "phrase secrete", "phrase de passe",
+    "code pin", "pin", "pin code", "code secret", "secret", "otp", "2fa", "mfa", "totp", "one-time", "one time code",
+    "code a usage unique", "code de verification", "verification code", "code de confirmation", "confirmation code",
+    "code d'authentification", "authentication code", "code de securite", "security code", "cvv", "cvc", "cvv2",
+    "cryptogramme", "numero de carte", "card number", "numero de la carte", "credit card", "carte bancaire",
+    "api key", "cle api", "cle d'api", "cle secrete", "secret key", "private key", "cle privee", "access token",
+    "jeton d'acces", "token", "recovery phrase", "seed phrase", "phrase de recuperation", "mnemonic",
+    "question secrete", "security question", "reponse secrete", "security answer",
+)
+SECRET_IDS = ("password", "passwd", "pwd", "pass", "pin", "otp", "totp", "cvv", "cvc", "csc", "ccnum", "cc number",
+              "card number", "cardnumber", "secret", "token", "apikey", "api key", "mfa", "2fa")
+SECRET_AUTOCOMPLETE = ("current-password", "new-password", "one-time-code", "cc-number", "cc-csc")
+
+
+def is_secret_field(field: dict) -> bool:
+    """Vrai pour un champ secret (mot de passe, code, carte, cle...) : on ne propose alors RIEN."""
+    if field.get("is_password"):
+        return True
+    aria = fold(str(field.get("aria_properties", "")))
+    if any(a in aria for a in SECRET_AUTOCOMPLETE):
+        return True
+    txt = fold(" | ".join(str(field.get(k, "") or "") for k in ("name", "help_text", "label", "placeholder")))
+    if any(_has_word(txt, w) for w in SECRET_WORDS):
+        return True
+    aid = fold(split_ident(field.get("automation_id", "")))
+    return any(_has_word(aid, w) for w in SECRET_IDS)
+
+
 def guess_field_kind(field: dict) -> RuleGuess:
     """Classement rapide d'un champ. confidence >= 0.9 : sur ; < 0.6 : laisser decider le modele."""
     if field.get("is_password"):
