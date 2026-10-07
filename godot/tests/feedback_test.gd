@@ -209,7 +209,10 @@ func _test_endpoint() -> void:
 	up.store.dir = "user://test_dataset_up_%d" % randi()
 	up.store.add(_sample("music"))
 	add_child(up)
+	var saved_ep = ProjectSettings.get_setting("pompom/feedback/endpoint", "")
+	ProjectSettings.set_setting("pompom/feedback/endpoint", "")  # (le vrai projet a une adresse : on la masque)
 	check(not up.send_now(), "adresse non configuree : aucun envoi")
+	ProjectSettings.set_setting("pompom/feedback/endpoint", saved_ep)
 	up.enabled = false
 	up.endpoint_override = "http://127.0.0.1:9"
 	check(not up.send_now(), "reglage coupe : aucun envoi")

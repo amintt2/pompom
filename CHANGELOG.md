@@ -3,6 +3,12 @@
 Toutes les versions de Pompom. Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/)
 et les numéros suivent [SemVer](https://semver.org/lang/fr/).
 
+## [0.6.3-beta] - 2026-10-07
+
+### Partage anonyme en ligne
+- Le serveur de contributions est en ligne (`https://pompom-feedback.mciut.fr`, hébergé sur Coolify) : le réglage **« Aider à améliorer Pompom (anonyme) »** apparaît dans Réglages → Assistant (désactivé par défaut).
+- Rien ne part sans ton accord : uniquement les nombres calculés sur ton PC + la correction + le nom de l'appli (« Voir ce qui part » montre tout). Le serveur ne garde ni adresse IP, ni journal.
+
 ## [0.6.2-beta] - 2026-10-07
 
 ### Ce qu'il tient, en main de cartes
