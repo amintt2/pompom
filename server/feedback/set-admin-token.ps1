@@ -34,6 +34,8 @@ Set-Content -Path $file -Value $admin -NoNewline -Encoding ascii
 icacls $file /inheritance:r /grant:r "$($env:USERNAME):(R,W)" | Out-Null
 Write-Host "Copie gardee dans $file (toi seul peux la lire)."
 
-Invoke-RestMethod -Method Get -Uri "$base/applications/$App/restart" -Headers $headers | Out-Null
+# (Coolify >= 4.3 : POST ; les versions plus anciennes acceptaient GET)
+try { Invoke-RestMethod -Method Post -Uri "$base/applications/$App/restart" -Headers $headers | Out-Null }
+catch { Invoke-RestMethod -Method Get -Uri "$base/applications/$App/restart" -Headers $headers | Out-Null }
 Write-Host "Serveur redemarre : l'export et les stats sont actifs dans ~30 s." -ForegroundColor Green
 $admin = $null
