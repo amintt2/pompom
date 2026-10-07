@@ -51,15 +51,15 @@ Un exemple (`items[]`), tous les champs obligatoires sauf `app` et `pet`, aucun 
 
 ## Déployer sur Coolify
 
-Le dépôt contient tout : `Dockerfile` (utilisateur non root, healthcheck) et `docker-compose.yml` (un seul
-service, volume `feedback-data` monté sur `/data`).
+Le dépôt contient tout : `Dockerfile` (utilisateur non root, healthcheck) et `docker-compose.yaml` (un seul
+service, volume `pompom-feedback-data` monté sur `/data`).
 
 1. **Projects** → ton projet → environnement (ex. `production`) → **+ New** (*New Resource*).
 2. **Public Repository** (ou **Private Repository (with GitHub App)** si le dépôt est privé) → colle l'URL
    du dépôt Pompom, branche `main`.
 3. **Build Pack : Docker Compose**.
    - **Base Directory** : `/server/feedback`
-   - **Docker Compose Location** : `/docker-compose.yml`
+   - **Docker Compose Location** : `/docker-compose.yaml`
    - **Continue**.
 4. Dans la ressource, onglet **General** → section du service `feedback` → **Domains** :
    `https://feedback.ton-domaine.fr:8000` (le `:8000` indique à Coolify le port **du conteneur** ; le public
@@ -69,7 +69,7 @@ service, volume `feedback-data` monté sur `/data`).
    - `ADMIN_TOKEN` = une longue valeur aléatoire (ex. `openssl rand -hex 32`), cochée **secret** / non
      visible dans les journaux de build ;
    - les autres sont facultatives (valeurs par défaut ci-dessus). Garde `TRUSTED_PROXY_HOPS=1` derrière Traefik.
-6. Onglet **Persistent Storage** : le volume nommé `feedback-data` → `/data` apparaît tout seul (créé
+6. Onglet **Persistent Storage** : le volume nommé `pompom-feedback-data` → `/data` apparaît tout seul (créé
    depuis le compose). Rien à faire ; c'est lui qui garde la base entre deux déploiements.
 7. **Deploy**. Le statut passe à *Running (healthy)* grâce au healthcheck `GET /v1/health`.
 8. Vérifie : `curl https://feedback.ton-domaine.fr/v1/health` → `{"ok":true}`.

@@ -1,0 +1,47 @@
+# Coolify (build pack « Docker Compose », dossier de base /server/feedback) : tout est decrit ici, rien a cliquer.
+# - la base SQLite vit dans le volume nomme « pompom-feedback-data » (garde entre les redeploiements) ;
+# - le domaine est route par le proxy Traefik de Coolify grace aux labels (HTTPS Let's Encrypt).
+# Les variables (ADMIN_TOKEN...) sont celles de l'application dans Coolify.
+services:
+  feedback:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - ADMIN_TOKEN=${ADMIN_TOKEN}
+      - MAX_BODY=${MAX_BODY:-262144}
+      - MAX_ITEMS=${MAX_ITEMS:-32}
+      - RATE_LIMIT=${RATE_LIMIT:-120/3600}
+      - TRUSTED_PROXY_HOPS=${TRUSTED_PROXY_HOPS:-1}
+      - RETENTION_DAYS=${RETENTION_DAYS:-730}
+      - DB_PATH=/data/feedback.db
+    volumes:
+      - pompom-feedback-data:/data
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.pompom-feedback-http.rule=Host(`pompom-feedback.mciut.fr`)
+      - traefik.http.routers.pompom-feedback-http.entrypoints=http
+      - traefik.http.routers.pompom-feedback-http.middlewares=pompom-feedback-https
+      - traefik.http.middlewares.pompom-feedback-https.redirectscheme.scheme=https
+      - traefik.http.routers.pompom-feedback.rule=Host(`pompom-feedback.mciut.fr`)
+      - traefik.http.routers.pompom-feedback.entrypoints=https
+      - traefik.http.routers.pompom-feedback.tls=true
+      - traefik.http.routers.pompom-feedback.tls.certresolver=letsencrypt
+      - traefik.http.services.pompom-feedback.loadbalancer.server.port=8000
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/v1/health', timeout=4).status == 200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+volumes:
+  pompom-feedback-data:
